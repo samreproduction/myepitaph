@@ -8,3 +8,6 @@ plain/
 _receipts/*.run.log
 _receipts/*.prompt.txt
 _receipts/*.runner.ps1
+
+# Screenshots stay out of the repo (design: no images in repo)
+_receipts/screens/
