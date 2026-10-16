@@ -1,5 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { fixtures } from '../src/fixtures';
+import { shapeFor, shapeKinds } from '../src/shape';
+import { writeFile } from 'node:fs/promises';
+
+async function movingPart(object: Locator) {
+  return object.locator(await object.getAttribute('data-kind') === 'mountain' ? '[data-part="moon"]' : 'svg g');
+}
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
   test(`${viewport.width}×${viewport.height} 墓園完整互動`, async ({ page }, testInfo) => {
@@ -45,7 +51,7 @@ test('桌面懸停播放循環，移開回到靜止', async ({ page }) => {
   await page.getByRole('button', { name: '進入', exact: true }).click();
   await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
   const object = page.getByTestId('memory-object').first();
-  const lines = object.locator('svg g');
+  const lines = await movingPart(object);
   const initial = await lines.getAttribute('transform');
   await object.hover();
   await page.waitForTimeout(600);
@@ -65,7 +71,7 @@ test('觸控長按播放但不開面板，之後短按另一件物件開面板',
     const objects = page.getByTestId('memory-object');
     const object = objects.first();
     await object.scrollIntoViewIfNeeded();
-    const lines = object.locator('svg g');
+    const lines = await movingPart(object);
     const initial = await lines.getAttribute('transform');
     const bounds = await object.boundingBox();
     expect(bounds).not.toBeNull();
@@ -93,9 +99,40 @@ test('減少動態時懸停不播放循環', async ({ page }) => {
   await page.getByRole('button', { name: '進入', exact: true }).click();
   await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
   const object = page.getByTestId('memory-object').first();
-  const lines = object.locator('svg g');
+  const lines = await movingPart(object);
   const initial = await lines.getAttribute('transform');
   await object.hover();
   await page.waitForTimeout(600);
   await expect(lines).toHaveAttribute('transform', initial!);
+  await expect(object.locator('.draw-line').first()).toHaveCSS('animation-name', 'none');
+  await expect(object.locator('.draw-line').first()).toHaveCSS('stroke-dashoffset', '0px');
+});
+
+test('出現時由底部部件往上描線，懸停不重播生長', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '進入', exact: true }).click();
+  const object = page.getByTestId('memory-object').first();
+  const lines = object.locator('.draw-line');
+  await expect(lines.first()).toHaveCSS('animation-name', 'draw-line');
+  const delays = await lines.evaluateAll((elements) => elements.map((element) => parseFloat(getComputedStyle(element).animationDelay)));
+  expect(delays[0]).toBe(0);
+  expect(delays.at(-1)).toBeCloseTo(.35);
+  expect(delays).toEqual([...delays].sort((a, b) => a - b));
+  await page.waitForTimeout(1000);
+  await expect(lines.last()).toHaveCSS('stroke-dashoffset', '0px');
+  await object.hover();
+  await expect(lines.last()).toHaveCSS('stroke-dashoffset', '0px');
+});
+
+test('六種簡筆畫同頁展示（展示頁與截圖僅存 test-results）', async ({ page }, testInfo) => {
+  const drawings = shapeKinds.map((kind) => {
+    const shape = shapeFor('展示用假文字。\n第二段，讓結構完整！', { kind });
+    return `<figure><svg viewBox="0 0 100 100" role="img" aria-label="${kind}"><g fill="none" stroke="currentColor" stroke-width="${shape.strokeWidth}" stroke-linecap="round" stroke-linejoin="round" transform="rotate(${shape.rotation} 50 88)">${shape.paths.map((d) => `<path d="${d}"/>`).join('')}${shape.fills.map((dot) => `<circle cx="${dot.cx}" cy="${dot.cy}" r="${dot.r}" fill="currentColor" stroke="none"/>`).join('')}</g></svg><figcaption>${kind}</figcaption></figure>`;
+  }).join('');
+  const html = `<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>六種簡筆畫</title><style>body{margin:0;background:#080909;color:#b5b9b2;font:18px serif}main{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;padding:50px 24px}figure{margin:0;text-align:center}svg{display:block;width:100%}figcaption{padding-top:16px}</style><main>${drawings}</main></html>`;
+  await writeFile(testInfo.outputPath('six-kinds.html'), html, 'utf8');
+  await page.setViewportSize({ width: 1440, height: 400 });
+  await page.setContent(html);
+  await expect(page.getByRole('img')).toHaveCount(6);
+  await page.screenshot({ path: testInfo.outputPath('six-kinds.png'), fullPage: true });
 });

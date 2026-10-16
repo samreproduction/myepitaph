@@ -1,5 +1,6 @@
 import { Player, type PlayerRef } from '@remotion/player';
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { useCurrentFrame } from 'remotion';
 import type { Fixture } from './fixtures';
 import { shapeFor, type ShapeSpec } from './shape';
@@ -7,11 +8,16 @@ import { shapeFor, type ShapeSpec } from './shape';
 function Lines({ shape }: { shape: ShapeSpec }) {
   const frame = useCurrentFrame();
   const breath = Math.sin(frame / 60 * Math.PI * 2);
+  const sway = { tree: 1.5, flower: 2, grass: 2.5, bird: .8, lantern: 2, mountain: 0 }[shape.kind];
   return <svg viewBox="0 0 100 100" aria-hidden="true">
     <g fill="none" stroke="currentColor" strokeWidth={shape.strokeWidth}
       strokeLinecap="round" strokeLinejoin="round"
-      transform={`rotate(${shape.rotation + breath * 4} 50 85) translate(0 ${breath * 2})`}>
-      {shape.paths.map((path) => <path key={path} d={path} />)}
+      transform={`rotate(${shape.rotation + breath * sway} 50 88)`}>
+      {shape.paths.map((path, index) => <path key={`${shape.kind}-${index}`} d={path}
+        className="draw-line" pathLength={1} data-part={shape.parts[index]}
+        style={{ '--draw-delay': `${index / Math.max(1, shape.paths.length - 1) * .35}s` } as CSSProperties}
+        transform={shape.parts[index] === 'moon' ? `translate(0 ${breath * 1.2})` : undefined} />)}
+      {shape.fills.map((dot, index) => <circle key={index} {...dot} className="draw-dot" fill="currentColor" stroke="none" />)}
     </g>
   </svg>;
 }
@@ -43,7 +49,7 @@ export function MemoryObject({ item, selected, onOpen }: {
   }, [active, reducedMotion]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  return <button className={`memory ${selected ? 'dissolved' : ''}`}
+  return <button className={`memory ${selected ? 'dissolved' : ''}`} data-kind={shape.kind}
     data-testid="memory-object" aria-label={`開啟${item.text.split(/[。？！：，\n]/)[0]}，${item.date}`}
     onKeyDown={() => { held.current = false; }}
     onPointerEnter={(event) => { if (event.pointerType === 'mouse') setActive(true); }}

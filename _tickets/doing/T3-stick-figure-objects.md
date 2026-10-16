@@ -2,7 +2,7 @@
 
 > 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:openai/gpt-6.1-sol
 > workdir: web
-> claimed-by: （派單時由主 AI 填寫）
+> claimed-by: opencode opencode v2.0.29 / openai/gpt-6.1-sol @ 2026-10-16 18:02:16
 
 ## 目標
 物件從抽象線條改成一眼認得出的簡筆畫（例如一棵完整的樹：樹幹、分枝、樹冠），仍由文字確定性生成。
