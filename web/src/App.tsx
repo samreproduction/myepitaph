@@ -1,23 +1,71 @@
 import { useEffect, useRef, useState } from 'react';
-import { epitaph, fixtures, type Fixture } from './fixtures';
+import { IncorrectPasswordError, loadContent, type Content, type Memory } from './content';
 import { MemoryObject } from './Object';
+
+const storageKey = 'blacktomb.unlock';
+function forgetPassword() {
+  try { localStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ }
+}
 
 export function App() {
   const [phase, setPhase] = useState<'locked' | 'growing' | 'still'>('locked');
   const [count, setCount] = useState(0);
-  const [selected, setSelected] = useState<Fixture | null>(null);
+  const [selected, setSelected] = useState<Memory | null>(null);
+  const [content, setContent] = useState<Content>({ objects: [], epitaph: null });
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const attempt = useRef(0);
   const [history, setHistory] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
+  const unlock = async (value: string, save: boolean, expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000) => {
+    const current = ++attempt.current;
+    setBusy(true);
+    setError('');
+    try {
+      const decrypted = await loadContent(value);
+      if (current !== attempt.current) return;
+      if (save) {
+        try { localStorage.setItem(storageKey, JSON.stringify({ password: value, expiresAt })); } catch { /* Optional storage. */ }
+      } else forgetPassword();
+      setContent(decrypted);
+      setCount(0);
+      setPassword('');
+      setPhase('growing');
+    } catch (cause) {
+      if (current !== attempt.current) return;
+      forgetPassword();
+      setError(cause instanceof IncorrectPasswordError ? '密碼不正確' : '無法載入內容，請重試');
+      setPassword('');
+      passwordInput.current?.focus();
+    } finally {
+      if (current === attempt.current) setBusy(false);
+    }
+  };
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (typeof saved.password === 'string' && typeof saved.expiresAt === 'number' && saved.expiresAt > Date.now()) {
+          void unlock(saved.password, true, saved.expiresAt);
+        } else forgetPassword();
+      }
+    } catch { forgetPassword(); }
+    return () => { attempt.current++; };
+  }, []);
   useEffect(() => {
     if (phase !== 'growing') return;
     const timer = setTimeout(() => {
-      if (count < fixtures.length) setCount(count + 1);
+      if (count < content.objects.length) setCount(count + 1);
       else setPhase('still');
-    }, count < fixtures.length ? 380 : 700);
+    }, count < content.objects.length ? 380 : 700);
     return () => clearTimeout(timer);
-  }, [phase, count]);
+  }, [phase, count, content.objects.length]);
   useEffect(() => {
     if (selected) dialog.current?.showModal();
   }, [selected]);
@@ -31,16 +79,38 @@ export function App() {
   return <main className={`cemetery ${phase}`}>
     <div className="ground" aria-hidden="true" />
     <div className="horizon" aria-hidden="true" />
-    {phase === 'locked' ? <div className="gate"><button onClick={() => setPhase('growing')}>進入</button></div> : <>
-      <header className="masthead"><span>無名之地</span><span>假內容原型 / 2026</span></header>
-      <section className="epitaph" aria-label="測試墓誌銘">
+    {phase === 'locked' ? <div className="gate"><form onSubmit={(event) => {
+      event.preventDefault();
+      if (!busy) void unlock(password, remember);
+    }}>
+      <label htmlFor="password">密碼</label>
+      <input ref={passwordInput} id="password" type="password" autoComplete="current-password"
+        value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby={error ? 'unlock-error' : undefined} />
+      <label className="remember"><input type="checkbox" checked={remember}
+        onChange={(event) => setRemember(event.target.checked)} />記住此裝置 30 天</label>
+      <button type="submit" disabled={busy}>{busy ? '解開中…' : '進入'}</button>
+      {error && <p id="unlock-error" role="alert">{error}</p>}
+    </form></div> : <>
+      <header className="masthead"><span>無名之地</span><button className="lock" onClick={() => {
+        attempt.current++;
+        forgetPassword();
+        dialog.current?.close();
+        setSelected(null);
+        setHistory(false);
+        setContent({ objects: [], epitaph: null });
+        setCount(0);
+        setRemember(false);
+        setError('');
+        setPhase('locked');
+      }}>上鎖</button></header>
+      {content.epitaph !== null && <section className="epitaph" aria-label="墓誌銘">
         <span className="eyebrow">此處留下的，只是測試</span>
-        <h1>{epitaph.split('\n')[0]}</h1>
-        <p>{epitaph.split('\n').slice(1).join('\n')}</p>
+        <h1>{content.epitaph.split('\n')[0]}</h1>
+        <p>{content.epitaph.split('\n').slice(1).join('\n')}</p>
         <span className="epitaph-line" aria-hidden="true" />
-      </section>
+      </section>}
       <section className="memories" aria-label="依日期排列的測試物件" aria-busy={phase === 'growing'}>
-        {fixtures.slice(0, count).map((item) => <MemoryObject key={item.slug}
+        {content.objects.slice(0, count).map((item) => <MemoryObject key={`${item.date}-${item.slug}`}
           item={item} selected={selected?.slug === item.slug}
           onOpen={() => { previousFocus.current = document.activeElement as HTMLElement; setSelected(item); }} />)}
       </section>

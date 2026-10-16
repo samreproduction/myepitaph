@@ -16,6 +16,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     const objects = page.getByTestId('memory-object');
     await expect(objects).toHaveCount(0);
     await expect(page.getByRole('heading')).toHaveCount(0);
+    await page.getByLabel('密碼', { exact: true }).fill('test-password');
     await page.getByRole('button', { name: '進入', exact: true }).click();
     await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
     await expect(objects).toHaveCount(fixtures.length);
@@ -48,6 +49,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 test('桌面懸停播放循環，移開回到靜止', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
+  await page.getByLabel('密碼', { exact: true }).fill('test-password');
   await page.getByRole('button', { name: '進入', exact: true }).click();
   await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
   const object = page.getByTestId('memory-object').first();
@@ -66,6 +68,7 @@ test('觸控長按播放但不開面板，之後短按另一件物件開面板',
   try {
     const page = await context.newPage();
     await page.goto('/');
+    await page.getByLabel('密碼', { exact: true }).fill('test-password');
     await page.getByRole('button', { name: '進入', exact: true }).tap();
     await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
     const objects = page.getByTestId('memory-object');
@@ -96,6 +99,7 @@ test('觸控長按播放但不開面板，之後短按另一件物件開面板',
 test('減少動態時懸停不播放循環', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  await page.getByLabel('密碼', { exact: true }).fill('test-password');
   await page.getByRole('button', { name: '進入', exact: true }).click();
   await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
   const object = page.getByTestId('memory-object').first();
@@ -110,6 +114,7 @@ test('減少動態時懸停不播放循環', async ({ page }) => {
 
 test('出現時由底部部件往上描線，懸停不重播生長', async ({ page }) => {
   await page.goto('/');
+  await page.getByLabel('密碼', { exact: true }).fill('test-password');
   await page.getByRole('button', { name: '進入', exact: true }).click();
   const object = page.getByTestId('memory-object').first();
   const lines = object.locator('.draw-line');

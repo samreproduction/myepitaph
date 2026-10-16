@@ -2,7 +2,7 @@ import { Player, type PlayerRef } from '@remotion/player';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useCurrentFrame } from 'remotion';
-import type { Fixture } from './fixtures';
+import type { Memory } from './content';
 import { shapeFor, type ShapeSpec } from './shape';
 
 function Lines({ shape }: { shape: ShapeSpec }) {
@@ -23,7 +23,7 @@ function Lines({ shape }: { shape: ShapeSpec }) {
 }
 
 export function MemoryObject({ item, selected, onOpen }: {
-  item: Fixture; selected: boolean; onOpen: () => void;
+  item: Memory; selected: boolean; onOpen: () => void;
 }) {
   const player = useRef<PlayerRef>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

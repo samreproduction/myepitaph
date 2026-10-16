@@ -9,6 +9,12 @@ button:focus-visible { outline: 1px solid #deded9; outline-offset: 5px; }
 .horizon { z-index: -1; border-top: 1px solid #444646; }
 .gate { min-height: calc(100svh - 60px); display: grid; place-items: center; }
 .gate button { background: #0b0c0c; border: 1px solid #666; padding: 14px 36px; letter-spacing: .4em; }
+.gate form { display: grid; gap: 18px; width: min(280px, 100%); }
+.gate input[type="password"] { width: 100%; background: #0b0c0c; border: 1px solid #666; color: inherit; padding: 12px; font: inherit; }
+.remember { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.gate button:disabled { opacity: .5; cursor: wait; }
+.gate [role="alert"] { margin: 0; font-size: 13px; }
+.lock { background: transparent; border: 1px solid #666; padding: 4px 9px; font-size: 11px; }
 .masthead { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: .16em; color: #828582; }
 .epitaph { text-align: center; padding: 90px 0 48px; }
 .eyebrow { font-size: 10px; letter-spacing: .3em; color: #858882; }

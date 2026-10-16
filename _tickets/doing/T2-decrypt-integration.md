@@ -1,7 +1,7 @@
 # T2：瀏覽器解密與密碼閘
 
 > 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:openai/gpt-6.1-sol
-> claimed-by: （派單時由主 AI 填寫）
+> claimed-by: opencode opencode v2.0.29 / openai/gpt-6.1-sol @ 2026-10-16 18:14:02
 
 ## 目標
 網站改為讀取加密內容：訪客輸入共用密碼，在瀏覽器內用 `src/crypto.mjs` 解開 `objects/*.md.enc.json` 與 `epitaph.md.enc.json`，再生長出物件；發佈流程改為建置 `web/` 並只發佈密文。
