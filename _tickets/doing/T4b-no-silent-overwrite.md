@@ -2,7 +2,7 @@
 
 > 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:openai/gpt-6.1-sol
 > workdir: web
-> claimed-by: （派單時由主 AI 填寫）
+> claimed-by: opencode opencode v2.0.29 / openai/gpt-6.1-sol @ 2026-10-16 18:47:13
 
 ## 目標
 修正 `_receipts/T4-phone-editor.review.md` 第 1、2 條：任何儲存或刪除都不能在不知情下蓋掉別處（另一台裝置）已寫入的內容。

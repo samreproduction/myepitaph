@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { open } from '../../src/crypto.mjs';
-import { fixtures } from '../src/fixtures';
+import { open, seal } from '../../src/crypto.mjs';
+import { epitaph, fixtures } from '../src/fixtures';
 
 type RequestBody = { message: string; branch: string; sha?: string; content?: string };
 async function unlock(page: Page) {
@@ -13,12 +13,26 @@ async function saveToken(page: Page) {
   await page.getByRole('button', { name: '儲存權杖', exact: true }).click();
   await expect(page.getByText('權杖已載入', { exact: true })).toBeVisible();
 }
-async function setup(page: Page) {
+async function setup(page: Page, overrides: Record<string, string | null> = {}) {
   const requests: { url: string; method: string; body: RequestBody; authorization: string | undefined }[] = [];
+  const texts: Record<string, string | null> = {
+    'epitaph.md.enc.json': epitaph,
+    ...Object.fromEntries(fixtures.map((item) => [`objects/${item.date}-${item.slug}.md.enc.json`, item.text])),
+    ...overrides,
+  };
+  const online = new Map(await Promise.all(Object.entries(texts).filter((entry): entry is [string, string] => entry[1] !== null).map(async ([path, text]) =>
+    [path, Buffer.from(JSON.stringify(await seal(text, 'test-password')), 'utf8').toString('base64')] as const)));
   await page.route('https://api.github.com/**', async (route) => {
     const request = route.request();
-    if (request.method() === 'GET') return route.fulfill({ json: { sha: 'mock-sha' } });
-    requests.push({ url: request.url(), method: request.method(), body: request.postDataJSON(), authorization: request.headers().authorization });
+    const path = decodeURIComponent(new URL(request.url()).pathname.split('/contents/')[1]);
+    if (request.method() === 'GET') return online.has(path)
+      ? route.fulfill({ json: { sha: 'mock-sha', content: online.get(path) } })
+      : route.fulfill({ status: 404, json: {} });
+    const body: RequestBody = request.postDataJSON();
+    requests.push({ url: request.url(), method: request.method(), body, authorization: request.headers().authorization });
+    if (request.method() === 'DELETE') online.delete(path);
+    else if (request.method() === 'PUT' && body.content) online.set(path, body.content);
+    else return route.abort();
     await route.fulfill({ status: 200, json: {} });
   });
   await page.goto('/');
@@ -81,6 +95,73 @@ test('新增中文 slug，自動避開同名，新增為加密內容', async ({ 
     expect(requests[index].url).toContain(`/objects/${today}-${encodeURIComponent('新的想法')}${index ? '-2' : ''}.md.enc.json`);
     expect(await open(JSON.parse(Buffer.from(requests[index].body.content!, 'base64').toString('utf8')), 'test-password')).toBe('新增的假文字');
   }
+});
+
+test('線上已更新時儲存顯示衝突，不發出 PUT', async ({ page }) => {
+  const item = fixtures[0];
+  const requests = await setup(page, { [`objects/${item.date}-${item.slug}.md.enc.json`]: '另一台裝置已更新的文字' });
+  await saveToken(page);
+  const row = page.getByTestId('edit-object').first();
+  await row.locator('summary').click();
+  await row.getByLabel('物件文字').fill('本機嘗試修改');
+  await row.getByRole('button', { name: '儲存', exact: true }).click();
+  await expect(row.getByRole('status')).toHaveText('此內容已在別處更新，請按完成後重新整理再改');
+  expect(requests).toHaveLength(0);
+});
+
+test('物件與墓誌銘儲存後更新原文，可連續修改，物件也可接著刪除', async ({ page }) => {
+  const requests = await setup(page);
+  await saveToken(page);
+  const row = page.getByTestId('edit-object').first();
+  await row.locator('summary').click();
+  const section = page.getByRole('region', { name: '編輯墓誌銘', exact: true });
+  for (const text of ['第一次修改', '第二次修改']) {
+    for (const [region, label] of [[row, '物件文字'], [section, '墓誌銘']] as const) {
+      await region.getByRole('textbox', { name: label, exact: true }).fill(text);
+      await region.getByRole('button', { name: '儲存', exact: true }).click();
+      await expect(region.getByRole('status')).toHaveText('已提交，約一分鐘後上線');
+    }
+  }
+  expect(requests.filter((request) => request.method === 'PUT')).toHaveLength(4);
+  page.once('dialog', (dialog) => dialog.accept());
+  await row.getByRole('button', { name: '刪除', exact: true }).click();
+  await expect(page.getByTestId('edit-object')).toHaveCount(7);
+  expect(requests[4].method).toBe('DELETE');
+});
+
+test('新增避開網站清單尚未出現的線上同名，清單使用實際路徑', async ({ page }) => {
+  const date = '2026-10-16';
+  const requests = await setup(page, {
+    [`objects/${date}-remote.md.enc.json`]: '別台新增一',
+    [`objects/${date}-remote-2.md.enc.json`]: '別台新增二',
+  });
+  await saveToken(page);
+  const section = page.getByRole('region', { name: '新增物件', exact: true });
+  await section.getByLabel('日期').fill(date);
+  await section.getByLabel('短名').fill('remote');
+  await section.getByLabel('新增文字').fill('本機新增');
+  await section.getByRole('button', { name: '儲存', exact: true }).click();
+  await expect(section.getByRole('status')).toHaveText('已提交，約一分鐘後上線');
+  expect(requests[0].url).toContain(`objects/${date}-remote-3.md.enc.json`);
+  expect(requests[0].body.sha).toBeUndefined();
+  const row = page.getByTestId('edit-object').last();
+  await row.locator('summary').click();
+  await row.getByLabel('物件文字').fill('新增後再改');
+  await row.getByRole('button', { name: '儲存', exact: true }).click();
+  await expect(row.getByRole('status')).toHaveText('已提交，約一分鐘後上線');
+  expect(requests[1].url).toBe(requests[0].url);
+});
+
+test('刪除遇線上 404 視為成功並移除清單，不發出 DELETE', async ({ page }) => {
+  const item = fixtures[0];
+  const requests = await setup(page, { [`objects/${item.date}-${item.slug}.md.enc.json`]: null });
+  await saveToken(page);
+  const row = page.getByTestId('edit-object').first();
+  await row.locator('summary').click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await row.getByRole('button', { name: '刪除', exact: true }).click();
+  await expect(page.getByTestId('edit-object')).toHaveCount(7);
+  expect(requests).toHaveLength(0);
 });
 
 test('刪除必須確認，取消不發送，確認帶 sha 刪除；墓誌銘 PUT 正確路徑', async ({ page }) => {

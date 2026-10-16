@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { open, seal } from '../../src/crypto.mjs';
 import type { Content, Memory } from './content';
+import { parseFilename } from './content';
 import { commitContent } from './github';
 
 const tokenKey = 'blacktomb.token';
@@ -21,6 +22,7 @@ export function Editor({ content, password, onChange, onDone }: {
   const [messages, setMessages] = useState<Record<string, string>>({});
   const [epitaph, setEpitaph] = useState(content.epitaph ?? '');
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const originals = useRef({ epitaph: content.epitaph, objects: Object.fromEntries(content.objects.map((item) => [pathFor(item), item.text])) });
   const [date, setDate] = useState(today);
   const [slug, setSlug] = useState('entry');
   const [text, setText] = useState('');
@@ -73,7 +75,11 @@ export function Editor({ content, password, onChange, onDone }: {
     </section>
     <section aria-label="編輯墓誌銘"><label htmlFor="edit-epitaph">墓誌銘</label>
       <textarea id="edit-epitaph" value={epitaph} onChange={(event) => setEpitaph(event.target.value)} />
-      {save('epitaph', async () => { await commitContent('epitaph.md.enc.json', epitaph, password, token); onChange({ ...content, epitaph }); })}{status('epitaph')}
+      {save('epitaph', async () => {
+        await commitContent('epitaph.md.enc.json', { mode: 'update', originalText: originals.current.epitaph, text: epitaph }, password, token);
+        originals.current.epitaph = epitaph;
+        onChange({ ...content, epitaph });
+      })}{status('epitaph')}
     </section>
     <section aria-label="物件清單"><h2>物件清單</h2>
       {[...content.objects].sort((a, b) => a.date.localeCompare(b.date) || a.slug.localeCompare(b.slug)).map((item) => {
@@ -82,12 +88,14 @@ export function Editor({ content, password, onChange, onDone }: {
           <label>物件文字<textarea value={drafts[path] ?? item.text} onChange={(event) => setDrafts({ ...drafts, [path]: event.target.value })} /></label>
           {save(path, async () => {
             const value = drafts[path] ?? item.text;
-            await commitContent(path, value, password, token);
+            await commitContent(path, { mode: 'update', originalText: originals.current.objects[path], text: value }, password, token);
+            originals.current.objects[path] = value;
             onChange({ ...content, objects: content.objects.map((entry) => pathFor(entry) === path ? { ...entry, text: value } : entry) });
           })}
           <button disabled={!!busy || !token} onClick={() => {
             if (window.confirm('確定刪除？內容仍保留在 Git 歷史')) void run(path, async () => {
-              await commitContent(path, null, password, token);
+              await commitContent(path, { mode: 'remove', originalText: originals.current.objects[path] }, password, token);
+              delete originals.current.objects[path];
               onChange({ ...content, objects: content.objects.filter((entry) => pathFor(entry) !== path) });
               setMessages((previous) => ({ ...previous, deletion: success }));
             });
@@ -102,11 +110,11 @@ export function Editor({ content, password, onChange, onDone }: {
       {save('new', async () => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('請填寫日期');
         const clean = slug.replace(/[/\\]/g, '').trim() || 'entry';
-        let unique = clean;
-        let suffix = 2;
-        while (content.objects.some((item) => item.date === date && item.slug === unique)) unique = `${clean}-${suffix++}`;
-        const item = { date, slug: unique, text };
-        await commitContent(pathFor(item), text, password, token);
+        const path = await commitContent(pathFor({ date, slug: clean, text }), { mode: 'create', text }, password, token);
+        const metadata = parseFilename(path.slice('objects/'.length));
+        if (!metadata) throw new Error('無法辨識新增物件路徑');
+        const item = { ...metadata, text };
+        originals.current.objects[path] = text;
         onChange({ ...content, objects: [...content.objects, item] });
         setText('');
       })}{status('new')}
