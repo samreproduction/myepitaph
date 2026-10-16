@@ -13,6 +13,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     await page.getByRole('button', { name: '進入', exact: true }).click();
     await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
     await expect(objects).toHaveCount(fixtures.length);
+    const horizonTop = await page.locator('.horizon').evaluate((element) => element.getBoundingClientRect().top);
+    const groundTop = await page.locator('.ground').evaluate((element) => element.getBoundingClientRect().top);
+    expect(Math.abs(horizonTop - groundTop)).toBeLessThanOrEqual(1);
     await noOverflow();
     await page.screenshot({ path: testInfo.outputPath(`cemetery-${viewport.width}.png`), fullPage: true });
     for (let index = 0; index < fixtures.length; index++) {
@@ -35,3 +38,64 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     await expect(objects.first()).toBeFocused();
   });
 }
+
+test('桌面懸停播放循環，移開回到靜止', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('button', { name: '進入', exact: true }).click();
+  await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
+  const object = page.getByTestId('memory-object').first();
+  const lines = object.locator('svg g');
+  const initial = await lines.getAttribute('transform');
+  await object.hover();
+  await page.waitForTimeout(600);
+  expect(await lines.getAttribute('transform')).not.toBe(initial);
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(300);
+  await expect(lines).toHaveAttribute('transform', initial!);
+});
+
+test('觸控長按播放但不開面板，之後短按另一件物件開面板', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.getByRole('button', { name: '進入', exact: true }).tap();
+    await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
+    const objects = page.getByTestId('memory-object');
+    const object = objects.first();
+    await object.scrollIntoViewIfNeeded();
+    const lines = object.locator('svg g');
+    const initial = await lines.getAttribute('transform');
+    const bounds = await object.boundingBox();
+    expect(bounds).not.toBeNull();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart', touchPoints: [{ x: bounds!.x + bounds!.width / 2, y: bounds!.y + bounds!.height / 2 }],
+    });
+    await page.waitForTimeout(1200);
+    expect(await lines.getAttribute('transform')).not.toBe(initial);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+    await expect(lines).toHaveAttribute('transform', initial!);
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    await objects.nth(1).tap();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.locator('.memory-text')).toHaveText(fixtures[1].text);
+  } finally {
+    await context.close();
+  }
+});
+
+test('減少動態時懸停不播放循環', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.getByRole('button', { name: '進入', exact: true }).click();
+  await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
+  const object = page.getByTestId('memory-object').first();
+  const lines = object.locator('svg g');
+  const initial = await lines.getAttribute('transform');
+  await object.hover();
+  await page.waitForTimeout(600);
+  await expect(lines).toHaveAttribute('transform', initial!);
+});

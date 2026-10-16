@@ -3,8 +3,10 @@
 body { margin: 0; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 1px solid #deded9; outline-offset: 5px; }
-.cemetery { position: relative; isolation: isolate; min-height: 100svh; padding: 32px 7vw 28px; background: linear-gradient(to bottom, #080909 0%, #080909 43%, #171818 43.15%, #101111 70%, #080909 100%); }
-.horizon { position: absolute; z-index: -1; top: 43svh; left: 0; width: 100%; border-top: 1px solid #444646; }
+.cemetery { position: relative; isolation: isolate; min-height: 100svh; padding: 32px 7vw 28px; background: #080909; }
+.ground, .horizon { position: absolute; top: 43svh; left: 0; width: 100%; }
+.ground { z-index: -2; bottom: 0; background: linear-gradient(to bottom, #171818 0%, #101111 47%, #080909 100%); }
+.horizon { z-index: -1; border-top: 1px solid #444646; }
 .gate { min-height: calc(100svh - 60px); display: grid; place-items: center; }
 .gate button { background: #0b0c0c; border: 1px solid #666; padding: 14px 36px; letter-spacing: .4em; }
 .masthead { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: .16em; color: #828582; }

@@ -23,6 +23,7 @@ export function MemoryObject({ item, selected, onOpen }: {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const held = useRef(false);
   const [active, setActive] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const shape = shapeFor(item.text);
   const stop = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -30,9 +31,16 @@ export function MemoryObject({ item, selected, onOpen }: {
     setActive(false);
   };
   useEffect(() => {
-    if (active) player.current?.play();
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (active && !reducedMotion) player.current?.play();
     else { player.current?.pause(); player.current?.seekTo(0); }
-  }, [active]);
+  }, [active, reducedMotion]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   return <button className={`memory ${selected ? 'dissolved' : ''}`}

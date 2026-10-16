@@ -29,6 +29,7 @@ export function App() {
   };
 
   return <main className={`cemetery ${phase}`}>
+    <div className="ground" aria-hidden="true" />
     <div className="horizon" aria-hidden="true" />
     {phase === 'locked' ? <div className="gate"><button onClick={() => setPhase('growing')}>進入</button></div> : <>
       <header className="masthead"><span>無名之地</span><span>假內容原型 / 2026</span></header>
