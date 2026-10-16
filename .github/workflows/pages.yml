@@ -23,19 +23,29 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
       - name: Assemble site
         run: |
-          mkdir -p _site
-          cp -r site/. _site/
-          mkdir -p _site/objects _site/src
-          cp objects/*.enc.json _site/objects/ 2>/dev/null || true
-          cp src/crypto.mjs _site/src/
           # Hard guard: refuse to deploy anything that looks like plaintext.
-          if find _site -name '*.md' | grep -q .; then
-            echo "plaintext .md found in _site, aborting" && exit 1
+          if find web/dist -name '*.md' | grep -q .; then
+            echo "plaintext .md found in web/dist, aborting" && exit 1
+          fi
+          # Content may contain ciphertext and the generated JSON index only.
+          if find web/dist/content -type f ! -name '*.enc.json' ! -name 'index.json' | grep -q .; then
+            echo "unexpected content file found in web/dist/content, aborting" && exit 1
           fi
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: web/dist
       - id: deploy
         uses: actions/deploy-pages@v4

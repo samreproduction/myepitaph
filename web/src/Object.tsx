@@ -1,0 +1,79 @@
+import { Player, type PlayerRef } from '@remotion/player';
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { useCurrentFrame } from 'remotion';
+import type { DeletedMemory, Memory } from './content';
+import { shapeFor, type ShapeSpec } from './shape';
+
+function Lines({ shape }: { shape: ShapeSpec }) {
+  const frame = useCurrentFrame();
+  const breath = Math.sin(frame / 60 * Math.PI * 2);
+  const sway = { tree: 1.5, flower: 2, grass: 2.5, bird: .8, lantern: 2, mountain: 0 }[shape.kind];
+  return <svg viewBox="0 0 100 100" aria-hidden="true">
+    <g fill="none" stroke="currentColor" strokeWidth={shape.strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round"
+      transform={`rotate(${shape.rotation + breath * sway} 50 88)`}>
+      {shape.paths.map((path, index) => <path key={`${shape.kind}-${index}`} d={path}
+        className="draw-line" pathLength={1} data-part={shape.parts[index]}
+        style={{ '--draw-delay': `${index / Math.max(1, shape.paths.length - 1) * .35}s` } as CSSProperties}
+        transform={shape.parts[index] === 'moon' ? `translate(0 ${breath * 1.2})` : undefined} />)}
+      {shape.fills.map((dot, index) => <circle key={index} {...dot} className="draw-dot" fill="currentColor" stroke="none" />)}
+    </g>
+  </svg>;
+}
+
+export function MemoryGap({ item }: { item: DeletedMemory }) {
+  return <div className="memory memory-gap" aria-label={`已刪除的物件，${item.date}`} data-testid="memory-gap">
+    <span className="object-art" aria-hidden="true" />
+    <span className="object-date">{item.date}</span>
+  </div>;
+}
+
+export function MemoryObject({ item, selected, onOpen }: {
+  item: Memory; selected: boolean; onOpen: () => void;
+}) {
+  const player = useRef<PlayerRef>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+  const [active, setActive] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const shape = shapeFor(item.text);
+  const stop = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    setActive(false);
+  };
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (active && !reducedMotion) player.current?.play();
+    else { player.current?.pause(); player.current?.seekTo(0); }
+  }, [active, reducedMotion]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  return <button className={`memory ${selected ? 'dissolved' : ''}`} data-kind={shape.kind}
+    data-testid="memory-object" aria-label={`開啟${item.text.split(/[。？！：，\n]/)[0]}，${item.date}`}
+    onKeyDown={() => { held.current = false; }}
+    onPointerEnter={(event) => { if (event.pointerType === 'mouse') setActive(true); }}
+    onPointerLeave={stop} onBlur={stop}
+    onPointerDown={(event) => {
+      held.current = false;
+      if (event.pointerType !== 'mouse') {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        timer.current = setTimeout(() => { held.current = true; setActive(true); }, 500);
+      }
+    }}
+    onPointerUp={stop} onPointerCancel={stop}
+    onClick={() => { if (!held.current) { stop(); onOpen(); } held.current = false; }}>
+    <span className="object-art"><Player ref={player} component={Lines} inputProps={{ shape }}
+      durationInFrames={60} fps={30} compositionWidth={100} compositionHeight={100}
+      loop controls={false} clickToPlay={false} spaceKeyToPlayOrPause={false}
+      style={{ width: '100%', height: '100%', pointerEvents: 'none' }} /></span>
+    <span className="object-date">{item.date}</span>
+  </button>;
+}
