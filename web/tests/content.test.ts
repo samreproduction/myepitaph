@@ -37,13 +37,34 @@ describe('encrypted content', () => {
       const relative = filename === 'epitaph.md.enc.json' ? filename : `objects/${filename}`;
       return { ok: true, json: async () => JSON.parse(await readFile(new URL(`./content/${relative}`, import.meta.url), 'utf8')) };
     }));
-    expect(await loadContent('test-password')).toEqual({ objects: fixtures, epitaph });
+    expect(await loadContent('test-password')).toEqual({ objects: fixtures, epitaph, history: {}, deleted: [] });
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
   });
   it('空 objects 和 null epitaph 不可驗證密碼', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ epitaph: null, objects: [] }) })));
     await expect(loadContent('unused')).rejects.toBeInstanceOf(EmptyContentError);
+  });
+  it('載入歷史索引但不讀歷史密文，刪除檔名解析並略過非法日期', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const history = { 'epitaph.md.enc.json': [{ file: 'history/1.enc.json', date: '2026-10-01T12:00:00Z' }] };
+    const fetcher = vi.fn(async (url: string) => {
+      if (url.endsWith('index.json')) return { ok: true, json: async () => ({
+        epitaph: 'epitaph.md.enc.json', objects: [], history,
+        deleted: [
+          { name: '2026-09-10-test-gone.md.enc.json', deletedAt: '2026-10-06T12:00:00Z' },
+          { name: '2026-02-30-invalid.md.enc.json', deletedAt: '2026-10-06T12:00:00Z' },
+        ],
+      }) };
+      expect(url).toBe('./content/epitaph.md.enc.json');
+      return { ok: true, json: async () => JSON.parse(await readFile(new URL('./content/epitaph.md.enc.json', import.meta.url), 'utf8')) };
+    });
+    vi.stubGlobal('fetch', fetcher);
+    expect(await loadContent('test-password')).toEqual({ objects: [], epitaph, history,
+      deleted: [{ date: '2026-09-10', slug: 'test-gone', deletedAt: '2026-10-06T12:00:00Z' }] });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
   it('只有不合格物件也視為空內容，不嘗試載入密文', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

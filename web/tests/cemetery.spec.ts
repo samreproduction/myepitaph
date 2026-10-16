@@ -46,8 +46,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.locator('body')).not.toContainText('測試物件文字');
       await expect(page.locator('body')).not.toContainText('只是測試');
       if (index === 0) {
-        await page.getByRole('button', { name: '歷史', exact: true }).click();
-        await expect(page.getByText('尚未接入', { exact: true })).toBeVisible();
+        await page.getByRole('dialog').getByRole('button', { name: '歷史', exact: true }).click();
+        await expect(page.getByRole('region', { name: '歷史版本', exact: true }).getByRole('listitem')).toHaveCount(3);
         await noOverflow();
         await page.screenshot({ path: testInfo.outputPath(`panel-${viewport.width}.png`), fullPage: true });
       }

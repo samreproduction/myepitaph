@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { EmptyContentError, IncorrectPasswordError, loadContent, type Content, type Memory } from './content';
-import { MemoryObject } from './Object';
+import { MemoryGap, MemoryObject } from './Object';
+import { History } from './History';
 import { Editor } from './Editor';
 
 const storageKey = 'blacktomb.unlock';
@@ -12,7 +13,8 @@ export function App() {
   const [phase, setPhase] = useState<'locked' | 'growing' | 'still'>('locked');
   const [count, setCount] = useState(0);
   const [selected, setSelected] = useState<Memory | null>(null);
-  const [content, setContent] = useState<Content>({ objects: [], epitaph: null });
+  const [content, setContent] = useState<Content>({ objects: [], epitaph: null, history: {}, deleted: [] });
+  const [epitaphSelected, setEpitaphSelected] = useState(false);
   const [password, setPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [editing, setEditing] = useState(false);
@@ -24,6 +26,9 @@ export function App() {
   const [history, setHistory] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
+  const items = [...content.objects.map((item) => ({ ...item, kind: 'object' as const })),
+    ...content.deleted.map((item) => ({ ...item, kind: 'gap' as const }))]
+    .sort((a, b) => a.date.localeCompare(b.date) || a.slug.localeCompare(b.slug));
 
   const unlock = async (value: string, save: boolean, expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000) => {
     const current = ++attempt.current;
@@ -66,17 +71,18 @@ export function App() {
   useEffect(() => {
     if (phase !== 'growing') return;
     const timer = setTimeout(() => {
-      if (count < content.objects.length) setCount(count + 1);
+      if (count < items.length) setCount(count + 1);
       else setPhase('still');
-    }, count < content.objects.length ? 380 : 700);
+    }, count < items.length ? 380 : 700);
     return () => clearTimeout(timer);
-  }, [phase, count, content.objects.length]);
+  }, [phase, count, items.length]);
   useEffect(() => {
-    if (selected) dialog.current?.showModal();
-  }, [selected]);
+    if (selected || epitaphSelected) dialog.current?.showModal();
+  }, [selected, epitaphSelected]);
   const close = () => {
     dialog.current?.close();
     setSelected(null);
+    setEpitaphSelected(false);
     setHistory(false);
     previousFocus.current?.focus();
   };
@@ -101,8 +107,9 @@ export function App() {
         forgetPassword();
         dialog.current?.close();
         setSelected(null);
+        setEpitaphSelected(false);
         setHistory(false);
-        setContent({ objects: [], epitaph: null });
+        setContent({ objects: [], epitaph: null, history: {}, deleted: [] });
         setCurrentPassword('');
         setPassword('');
         setEditing(false);
@@ -115,21 +122,28 @@ export function App() {
         <h1>{content.epitaph.split('\n')[0]}</h1>
         <p>{content.epitaph.split('\n').slice(1).join('\n')}</p>
         <span className="epitaph-line" aria-hidden="true" />
+        <button className="history" onClick={() => {
+          previousFocus.current = document.activeElement as HTMLElement;
+          setEpitaphSelected(true); setHistory(true);
+        }}>歷史</button>
       </section>}
       <section className="memories" aria-label="依日期排列的物件" aria-busy={phase === 'growing'}>
-        {content.objects.slice(0, count).map((item) => <MemoryObject key={`${item.date}-${item.slug}`}
+        {items.slice(0, count).map((item) => item.kind === 'gap'
+          ? <MemoryGap key={`${item.date}-${item.slug}`} item={item} />
+          : <MemoryObject key={`${item.date}-${item.slug}`}
           item={item} selected={selected?.date === item.date && selected?.slug === item.slug}
           onOpen={() => { previousFocus.current = document.activeElement as HTMLElement; setSelected(item); }} />)}
       </section>
       <footer><span role="status">{phase === 'growing' ? '記憶正在生長' : '生長完成'}</span><span>停留或長按，讓線條呼吸 · 點選閱讀</span></footer>
     </>}
     <dialog ref={dialog} aria-labelledby="memory-title" onCancel={(event) => { event.preventDefault(); close(); }}>
-      {selected && <article className="panel">
+      {(selected || epitaphSelected) && <article className="panel">
         <div className="panel-top"><button onClick={close} aria-label="關閉文字面板">關閉 ×</button></div>
-        <h2 id="memory-title">{selected.date}</h2>
-        <p className="memory-text">{selected.text}</p>
-        <button className="history" onClick={() => setHistory(true)}>歷史</button>
-        {history && <p role="status">尚未接入</p>}
+        <h2 id="memory-title">{epitaphSelected ? '墓誌銘' : selected?.date}</h2>
+        <p className="memory-text">{epitaphSelected ? content.epitaph : selected?.text}</p>
+        <button className="history" aria-expanded={history} onClick={() => setHistory(!history)}>歷史</button>
+        {history && <History password={currentPassword} versions={content.history[epitaphSelected
+          ? 'epitaph.md.enc.json' : `${selected?.date}-${selected?.slug}.md.enc.json`] ?? []} />}
       </article>}
     </dialog>
     {editing && <Editor content={content} password={currentPassword} onChange={setContent} onDone={() => {

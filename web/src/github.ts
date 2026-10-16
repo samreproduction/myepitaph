@@ -50,7 +50,10 @@ export async function commitContent(path: string, operation: Operation, password
         }
         const remote = await current.json();
         const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(atob(remote.content), (character) => character.charCodeAt(0))));
-        if (await open(envelope, password) !== operation.originalText) throw changed();
+        let onlineText;
+        try { onlineText = await open(envelope, password); }
+        catch { throw new GitHubError('無法用目前密碼解開線上版本，未寫入'); }
+        if (onlineText !== operation.originalText) throw changed();
         if (typeof remote.sha !== 'string' || !remote.sha) throw new GitHubError('GitHub：無法確認線上版本，請重試');
         sha = remote.sha;
       }

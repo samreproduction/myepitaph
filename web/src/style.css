@@ -41,6 +41,15 @@ dialog::backdrop { background: #000b; backdrop-filter: blur(5px); }
 .panel h2 { font-weight: 400; font-size: 20px; margin: 36px 0 24px; }
 .memory-text { white-space: pre-wrap; line-height: 2; margin-bottom: 36px; }
 .history { font-size: 12px; }
+.epitaph .history { margin-top: 14px; background: transparent; border: 1px solid #454848; padding: 4px 9px; color: #92958e; }
+.history-versions ol { padding-left: 24px; }
+.history-versions li { margin: 8px 0; }
+.history-versions [aria-pressed="true"] { border-color: #ccc; }
+.history-text { white-space: pre-wrap; line-height: 2; }
+.memory-gap { text-align: center; cursor: default; animation: emerge .55s both; }
+.memory-gap .object-art { border: 1px dashed #626660; opacity: .35; }
+.memory-gap .object-date { color: #686c66; }
+.memory-gap:hover .object-date { color: #686c66; }
 @keyframes draw-line { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes draw-dot { from { opacity: 0; } to { opacity: 1; } }
 @keyframes emerge { from { opacity: 0; filter: blur(8px); } to { opacity: 1; filter: blur(0); } }

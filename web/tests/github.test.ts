@@ -77,6 +77,14 @@ describe('GitHub 加密提交', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
   for (const mode of ['update', 'remove'] as const) {
+    it(`${mode} 線上密文無法用目前密碼解開時顯示明確訊息且不寫入`, async () => {
+      const envelope = await seal('其他密碼的線上文字', 'another-test-password');
+      const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ sha: 'remote', content: encodeContent(JSON.stringify(envelope)) }));
+      vi.stubGlobal('fetch', fetcher);
+      await expect(commitContent(path, { ...update, mode }, password, token))
+        .rejects.toThrow('無法用目前密碼解開線上版本，未寫入');
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
     it(`${mode} 線上原文不同就停止，不發出寫入`, async () => {
       const fetcher = vi.fn().mockResolvedValueOnce(await remote('已在另一台改過'));
       vi.stubGlobal('fetch', fetcher);

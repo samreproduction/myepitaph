@@ -2,7 +2,7 @@ import { Player, type PlayerRef } from '@remotion/player';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useCurrentFrame } from 'remotion';
-import type { Memory } from './content';
+import type { DeletedMemory, Memory } from './content';
 import { shapeFor, type ShapeSpec } from './shape';
 
 function Lines({ shape }: { shape: ShapeSpec }) {
@@ -20,6 +20,13 @@ function Lines({ shape }: { shape: ShapeSpec }) {
       {shape.fills.map((dot, index) => <circle key={index} {...dot} className="draw-dot" fill="currentColor" stroke="none" />)}
     </g>
   </svg>;
+}
+
+export function MemoryGap({ item }: { item: DeletedMemory }) {
+  return <div className="memory memory-gap" aria-label={`已刪除的物件，${item.date}`} data-testid="memory-gap">
+    <span className="object-art" aria-hidden="true" />
+    <span className="object-date">{item.date}</span>
+  </div>;
 }
 
 export function MemoryObject({ item, selected, onOpen }: {

@@ -9,7 +9,12 @@ export interface Memory {
 export interface Content {
   objects: Memory[];
   epitaph: string | null;
+  history: Record<string, HistoryVersion[]>;
+  deleted: DeletedMemory[];
 }
+
+export interface HistoryVersion { file: string; date: string }
+export interface DeletedMemory { date: string; slug: string; deletedAt: string }
 
 export class IncorrectPasswordError extends Error {
   constructor() {
@@ -49,8 +54,17 @@ async function readJson(path: string) {
   return response.json();
 }
 
+export async function loadVersion(version: HistoryVersion, password: string) {
+  return decryptEnvelope(await readJson(version.file.split('/').map(encodeURIComponent).join('/')), password);
+}
+
 export async function loadContent(password: string): Promise<Content> {
-  const index: { epitaph: string | null; objects: string[] } = await readJson('index.json');
+  const index: { epitaph: string | null; objects: string[]; history?: Content['history'];
+    deleted?: { name: string; deletedAt: string }[] } = await readJson('index.json');
+  const deleted = (index.deleted ?? []).flatMap(({ name, deletedAt }) => {
+    const metadata = parseFilename(name);
+    return metadata ? [{ ...metadata, deletedAt }] : [];
+  });
   const entries = index.objects.flatMap((filename) => {
     const metadata = parseFilename(filename);
     return metadata ? [{ filename, ...metadata }] : [];
@@ -64,5 +78,6 @@ export async function loadContent(password: string): Promise<Content> {
     index.epitaph === null ? null : readJson(encodeURIComponent(index.epitaph))
       .then((envelope) => decryptEnvelope(envelope, password)),
   ]);
-  return { objects: objects.sort((a, b) => a.date.localeCompare(b.date) || a.slug.localeCompare(b.slug)), epitaph };
+  return { objects: objects.sort((a, b) => a.date.localeCompare(b.date) || a.slug.localeCompare(b.slug)),
+    epitaph, history: index.history ?? {}, deleted };
 }

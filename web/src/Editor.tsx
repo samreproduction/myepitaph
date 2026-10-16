@@ -96,7 +96,8 @@ export function Editor({ content, password, onChange, onDone }: {
             if (window.confirm('確定刪除？內容仍保留在 Git 歷史')) void run(path, async () => {
               await commitContent(path, { mode: 'remove', originalText: originals.current.objects[path] }, password, token);
               delete originals.current.objects[path];
-              onChange({ ...content, objects: content.objects.filter((entry) => pathFor(entry) !== path) });
+              onChange({ ...content, objects: content.objects.filter((entry) => pathFor(entry) !== path),
+                deleted: [...content.deleted, { date: item.date, slug: item.slug, deletedAt: new Date().toISOString() }] });
               setMessages((previous) => ({ ...previous, deletion: success }));
             });
           }}>刪除</button>{status(path)}
