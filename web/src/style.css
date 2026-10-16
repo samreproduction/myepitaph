@@ -1,0 +1,43 @@
+:root { font-family: "Noto Serif TC", "Songti TC", serif; color: #c8c8c5; background: #080909; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 1px solid #deded9; outline-offset: 5px; }
+.cemetery { position: relative; isolation: isolate; min-height: 100svh; padding: 32px 7vw 28px; background: linear-gradient(to bottom, #080909 0%, #080909 43%, #171818 43.15%, #101111 70%, #080909 100%); }
+.horizon { position: absolute; z-index: -1; top: 43svh; left: 0; width: 100%; border-top: 1px solid #444646; }
+.gate { min-height: calc(100svh - 60px); display: grid; place-items: center; }
+.gate button { background: #0b0c0c; border: 1px solid #666; padding: 14px 36px; letter-spacing: .4em; }
+.masthead { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: .16em; color: #828582; }
+.epitaph { text-align: center; padding: 90px 0 48px; }
+.eyebrow { font-size: 10px; letter-spacing: .3em; color: #858882; }
+h1 { font-size: clamp(24px, 3vw, 38px); font-weight: 400; letter-spacing: .23em; margin: 28px 0 20px; }
+.epitaph p { white-space: pre-line; font-size: 13px; line-height: 2.3; letter-spacing: .15em; color: #aaa; }
+.epitaph-line { display: block; height: 46px; width: 1px; background: #60635f; margin: 26px auto 0; }
+.memories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 5vw; max-width: 1000px; margin: 0 auto; min-height: 310px; }
+.memory { min-width: 0; background: transparent; border: 0; padding: 0 8px 10px; touch-action: manipulation; user-select: none; -webkit-touch-callout: none; animation: grow .65s both; transition: opacity .4s, filter .4s; }
+.object-art { display: block; width: 100%; max-width: 120px; aspect-ratio: 1; margin: auto; color: #b5b9b2; }
+.object-date { display: block; font-size: 10px; letter-spacing: .12em; color: #8c9088; }
+.memory:hover .object-date { color: #ddd; }
+.memory.dissolved { animation: none; opacity: 0; filter: blur(12px); }
+footer { display: flex; justify-content: space-between; gap: 14px; margin-top: 42px; font-size: 10px; letter-spacing: .1em; color: #92958e; }
+dialog { padding: 0; width: min(540px, calc(100% - 40px)); max-height: calc(100svh - 48px); color: #cecec8; background: #151716; border: 1px solid #646960; }
+dialog[open] { animation: emerge .4s both; }
+dialog::backdrop { background: #000b; backdrop-filter: blur(5px); }
+.panel { padding: 30px; overflow-wrap: anywhere; }
+.panel-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: #aaa; }
+.panel button { border: 1px solid #62665e; background: transparent; padding: 9px 12px; }
+.panel h2 { font-weight: 400; font-size: 20px; margin: 36px 0 24px; }
+.memory-text { white-space: pre-wrap; line-height: 2; margin-bottom: 36px; }
+.history { font-size: 12px; }
+@keyframes grow { from { opacity: 0; transform: translateY(15px) scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes emerge { from { opacity: 0; filter: blur(8px); } to { opacity: 1; filter: blur(0); } }
+@media (max-width: 600px) {
+  .cemetery { padding: 24px 24px 28px; }
+  .masthead { font-size: 9px; letter-spacing: .05em; }
+  .epitaph { padding: 68px 0 32px; }
+  .memories { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+  .object-art { max-width: 98px; }
+  footer { flex-direction: column; line-height: 1.8; margin-top: 32px; }
+  .panel { padding: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

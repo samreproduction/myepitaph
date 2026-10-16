@@ -2,7 +2,7 @@
 
 > 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:openai/gpt-6.1-sol
 > workdir: web
-> claimed-by: （派單時由主 AI 填寫）
+> claimed-by: opencode opencode v2.0.29 / openai/gpt-6.1-sol @ 2026-10-16 16:54:41
 
 ## 目標
 在 `web/` 做出可在手機與電腦瀏覽器運行的墓園畫面原型：假內容的物件依日期逐件生長，墓誌銘石碑居中，點擊物件看文字。
