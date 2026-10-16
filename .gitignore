@@ -3,3 +3,8 @@ node_modules/
 plain/
 *.md.plain
 .env
+
+# opencode dispatch byproducts
+_receipts/*.run.log
+_receipts/*.prompt.txt
+_receipts/*.runner.ps1
