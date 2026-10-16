@@ -6,3 +6,8 @@
 2. 低｜web/src/Object.tsx｜`prefers-reduced-motion` 只停了 CSS 動畫，Remotion 循環照跑。→ T1b
 3. 低｜web/tests/cemetery.spec.ts｜懸停與長按循環沒有自動化測試（回執已列為存疑）。→ T1b
 4. 低｜build 單一 JS 571 kB（gzip 181 kB），原型可接受，T2 整合時再看。不改。
+
+## 核實（T1b 之後，2026-10-16）
+- 第 1–3 條已由 T1b（fd3191d）修正。雲端重跑：build 通過、vitest 4 過、Playwright 5 過；手機截圖只剩一條分界。
+- 第 4 條不改，T2 再看。
+- T1、T1b 驗收通過，移至 done/。
