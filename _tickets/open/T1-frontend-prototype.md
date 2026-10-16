@@ -1,6 +1,6 @@
 # T1：前端原型（假內容，暫不接加密）
 
-> 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:<待定>
+> 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:openai/gpt-6.1-sol
 > workdir: web
 > claimed-by: （派單時由主 AI 填寫）
 
@@ -9,7 +9,7 @@
 
 ## 動手前先讀
 1. `README.md`
-2. `/mnt/project-files/黑墓-架構圖.md` 第三、四、五節（內容模型、畫面與互動、技術分工）。若此路徑不存在，以本單「規格」為準。
+2. 本單「規格」一節（摘自設計架構圖，已定案）。
 3. `src/crypto.mjs`（只讀，了解之後如何接入；本單不呼叫它）
 
 ## 規格
@@ -35,8 +35,9 @@
 ## 驗收（寫命令，不寫感覺）
 1. `cd web && npm ci && npm run build` → 成功，產出 `web/dist/index.html`，無 TypeScript 錯誤。
 2. `cd web && npm test` → 測試全過；至少包含：同一文字兩次 `shapeFor` 結果深度相等；兩段不同假文字結果不同；覆寫 `kind` 生效。
-3. `find web/dist -name '*.md'` → 無輸出。
-4. `cd web && npx playwright test`（用環境裡已裝好的 Chromium，`executablePath: '/opt/pw-browsers/chromium'` 或 PLAYWRIGHT_BROWSERS_PATH，不要執行 `playwright install`）→ 通過，測試要對 `npm run preview` 起的頁面做：在 390×844 和 1440×900 下 `document.documentElement.scrollWidth <= innerWidth`；點「進入」後等待生長完成，物件按鈕數量等於假內容件數；點第一件物件出現文字面板且含該物件的假文字；按 Esc 面板消失。截圖存到 `web/test-results/`。
+3. `node -e "const fs=require('fs');const w=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?w(d+'/'+e.name):[d+'/'+e.name]);console.log(w('web/dist').filter(f=>f.endsWith('.md')).length)"` → 輸出 `0`。
+4. `cd web && npx playwright test` → 通過。不要執行 `playwright install`，也不下載瀏覽器：`playwright.config.ts` 若有環境變數 `PW_EXECUTABLE_PATH` 就用它當 `launchOptions.executablePath`，否則用 `channel: 'msedge'`（Windows 自帶的 Edge）。測試要對 `npm run preview` 起的頁面做：在 390×844 和 1440×900 下 `document.documentElement.scrollWidth <= innerWidth`；點「進入」後等待生長完成，物件按鈕數量等於假內容件數；點第一件物件出現文字面板且含該物件的假文字；按 Esc 面板消失。截圖存到 `web/test-results/`（此目錄也寫進 `web/.gitignore`）。
+5. 本機 shell 是 Windows：工具預設的 shell 若是 cmd，`&&` 照常可用；若某條命令輸出為空或只回顯命令本身，重跑一次再當證據。
 
 ## 為什麼這樣驗收
 目的是確認畫面設計在手機和電腦都能真的用，且形狀是由文字確定生成（之後接入加密內容時，同一篇文章每次打開形狀一樣）。build 裡不能出現 `.md`，因為發佈流程會因此中止，也是防明文外洩的底線。
