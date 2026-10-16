@@ -62,6 +62,9 @@ for (const mode of ['expired', 'incorrect', 'malformed']) {
     await expect(page.getByRole('button', { name: '進入', exact: true })).toBeEnabled();
     await expect.poll(() => page.evaluate(() => localStorage.getItem('blacktomb.unlock'))).toBeNull();
     await expect(page.getByTestId('memory-object')).toHaveCount(0);
+    await expect(page.locator('.epitaph')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '編輯', exact: true })).toHaveCount(0);
+    if (mode === 'incorrect') await expect(page.getByRole('alert')).toHaveText('密碼不正確');
   });
 }
 

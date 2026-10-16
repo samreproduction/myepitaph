@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { epitaphFirst, firstVersions } from './history-fixtures';
+import { seal } from '../../src/crypto.mjs';
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://api.github.com/**', (route) => route.abort());
@@ -63,6 +64,8 @@ test('歷史密文解不開時顯示指定錯誤，沒有歷史時顯示空狀�
   await panel.getByRole('button', { name: '歷史', exact: true }).click();
   await panel.getByRole('region', { name: '歷史版本', exact: true }).getByRole('button').last().click();
   await expect(panel.getByRole('status')).toHaveText('此版本無法用目前密碼解開');
+  await expect(panel.getByLabel('舊密碼', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '解開', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.route('**/content/index.json', async (route) => {
     const response = await route.fetch();
@@ -74,4 +77,38 @@ test('歷史密文解不開時顯示指定錯誤，沒有歷史時顯示空狀�
   await page.getByTestId('memory-object').first().click();
   await panel.getByRole('button', { name: '歷史', exact: true }).click();
   await expect(panel.getByRole('status')).toHaveText('沒有歷史紀錄');
+});
+
+test('歷史單版用舊密碼解開，錯誤可重試，切換及關閉不保留舊密碼', async ({ page }) => {
+  const oldText = '換密碼前的假歷史文字';
+  const envelope = await seal(oldText, 'new-test-password');
+  await page.route('**/content/history/*.enc.json', (route) => route.fulfill({ json: envelope }));
+  const storedBefore = await page.evaluate(() => ({ ...localStorage }));
+  await page.getByTestId('memory-object').first().click();
+  const panel = page.getByRole('dialog');
+  await panel.getByRole('button', { name: '歷史', exact: true }).click();
+  const versions = panel.getByRole('region', { name: '歷史版本', exact: true });
+  const oldest = versions.locator('ol button').last();
+  await oldest.click();
+  const input = panel.getByLabel('舊密碼', { exact: true });
+  await expect(input).toBeVisible();
+  await input.fill('test-password');
+  await panel.getByRole('button', { name: '解開', exact: true }).click();
+  await expect(panel.getByRole('status')).toHaveText('舊密碼不正確');
+  await expect(input).toHaveValue('');
+  await input.fill('new-test-password');
+  await panel.getByRole('button', { name: '解開', exact: true }).click();
+  await expect(panel.locator('.history-text')).toHaveText(oldText);
+  await expect(input).toHaveCount(0);
+  await versions.locator('ol button').first().click();
+  await expect(input).toHaveValue('');
+  await expect(panel.locator('.history-text')).toHaveCount(0);
+  await input.fill('new-test-password');
+  await panel.getByRole('button', { name: '關閉文字面板' }).click();
+  await page.getByTestId('memory-object').first().click();
+  await panel.getByRole('button', { name: '歷史', exact: true }).click();
+  await panel.getByRole('region', { name: '歷史版本', exact: true }).locator('ol button').last().click();
+  await expect(input).toHaveValue('');
+  expect(await page.evaluate(() => ({ ...localStorage }))).toEqual(storedBefore);
+  expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
 });

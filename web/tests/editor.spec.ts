@@ -55,6 +55,23 @@ test('首次貼權杖，加密持久化，重整解鎖後不需重貼，移除�
   expect(await page.evaluate(() => localStorage.getItem('blacktomb.token'))).toBeNull();
 });
 
+test('換密碼後舊權杖無法解開，提示重新貼上並可覆蓋', async ({ page }) => {
+  const sealedToken = JSON.stringify(await seal('換密碼權杖假文字', 'new-test-password'));
+  await page.addInitScript((raw) => localStorage.setItem('blacktomb.token', raw), sealedToken);
+  const requests = await setup(page);
+  await expect(page.getByRole('region', { name: 'GitHub 權杖', exact: true }).getByRole('status')).toHaveText('無法讀取權杖，請重新貼上');
+  await expect(page.getByLabel('貼上 GitHub 細粒度權杖', { exact: false })).toBeVisible();
+  await expect(page.getByRole('region', { name: '編輯墓誌銘', exact: true }).getByRole('button', { name: '儲存', exact: true })).toBeDisabled();
+  await page.getByLabel('貼上 GitHub 細粒度權杖', { exact: false }).fill('換密碼後的新假權杖');
+  await page.getByRole('button', { name: '儲存權杖', exact: true }).click();
+  await expect(page.getByText('權杖已載入', { exact: true })).toBeVisible();
+  const raw = await page.evaluate(() => localStorage.getItem('blacktomb.token'));
+  expect(raw).not.toBe(sealedToken);
+  expect(await open(JSON.parse(raw!), 'test-password')).toBe('換密碼後的新假權杖');
+  await expect(page.getByRole('region', { name: '編輯墓誌銘', exact: true }).getByRole('button', { name: '儲存', exact: true })).toBeEnabled();
+  expect(requests).toHaveLength(0);
+});
+
 test('修改物件只提交密文，完成後以新文字重新生長', async ({ page }) => {
   const requests = await setup(page);
   await saveToken(page);
