@@ -11,6 +11,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
   test(`${viewport.width}×${viewport.height} 墓園完整互動`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.goto('/');
+    await expect(page).toHaveTitle('黑墓');
+    const formBottom = await page.locator('.gate form').evaluate((element) => element.getBoundingClientRect().bottom);
+    const gateHorizonTop = await page.locator('.horizon').evaluate((element) => element.getBoundingClientRect().top);
+    expect(formBottom).toBeLessThanOrEqual(gateHorizonTop - 24);
+    await page.getByLabel('密碼', { exact: true }).focus();
+    await expect(page.getByLabel('密碼', { exact: true })).toHaveCSS('outline', 'rgb(222, 222, 217) solid 1px');
+    await expect(page.getByLabel('記住此裝置 30 天')).toHaveCSS('accent-color', 'rgb(170, 170, 170)');
     const noOverflow = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await noOverflow();
     const objects = page.getByTestId('memory-object');
@@ -20,6 +27,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     await page.getByRole('button', { name: '進入', exact: true }).click();
     await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
     await expect(objects).toHaveCount(fixtures.length);
+    await expect(page.getByRole('region', { name: '依日期排列的物件', exact: true })).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('測試物件文字');
+    await expect(page.locator('body')).not.toContainText('只是測試');
     const horizonTop = await page.locator('.horizon').evaluate((element) => element.getBoundingClientRect().top);
     const groundTop = await page.locator('.ground').evaluate((element) => element.getBoundingClientRect().top);
     expect(Math.abs(horizonTop - groundTop)).toBeLessThanOrEqual(1);
@@ -29,6 +39,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await objects.nth(index).click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await expect(page.locator('.memory-text')).toHaveText(fixtures[index].text);
+      await expect(page.getByRole('heading', { level: 2 })).toHaveText(fixtures[index].date);
+      await expect(page.locator('body')).not.toContainText('測試物件文字');
+      await expect(page.locator('body')).not.toContainText('只是測試');
       if (index === 0) {
         await page.getByRole('button', { name: '歷史', exact: true }).click();
         await expect(page.getByText('尚未接入', { exact: true })).toBeVisible();
@@ -45,6 +58,25 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     await expect(objects.first()).toBeFocused();
   });
 }
+
+test('不同日期同 slug 只隱去選中的物件', async ({ page }) => {
+  const original = `${fixtures[0].date}-${fixtures[0].slug}.md.enc.json`;
+  const other = `2026-10-16-${fixtures[0].slug}.md.enc.json`;
+  await page.route('**/content/index.json', (route) => route.fulfill({ json: { epitaph: null, objects: [original, other] } }));
+  await page.route(`**/content/${other}`, async (route) => {
+    const response = await route.fetch({ url: new URL(`./${original}`, route.request().url()).href });
+    await route.fulfill({ response });
+  });
+  await page.goto('/');
+  await page.getByLabel('密碼', { exact: true }).fill('test-password');
+  await page.getByRole('button', { name: '進入', exact: true }).click();
+  await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
+  const objects = page.getByTestId('memory-object');
+  await objects.nth(1).click();
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText('2026-10-16');
+  await expect(objects.first()).not.toHaveClass(/dissolved/);
+  await expect(objects.nth(1)).toHaveClass(/dissolved/);
+});
 
 test('桌面懸停播放循環，移開回到靜止', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

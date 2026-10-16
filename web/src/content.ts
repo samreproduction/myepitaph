@@ -18,8 +18,15 @@ export class IncorrectPasswordError extends Error {
   }
 }
 
+export class EmptyContentError extends Error {
+  constructor() {
+    super('目前還沒有內容');
+    this.name = 'EmptyContentError';
+  }
+}
+
 export function parseFilename(filename: string) {
-  const match = /^(\d{4}-\d{2}-\d{2})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md\.enc\.json$/.exec(filename);
+  const match = /^(\d{4}-\d{2}-\d{2})-([^/\\]+)\.md\.enc\.json$/.exec(filename);
   const date = match ? new Date(`${match[1]}T00:00:00Z`) : null;
   if (!match || !date || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== match[1]) {
     console.warn('Skipping invalid content filename:', filename);
@@ -48,6 +55,7 @@ export async function loadContent(password: string): Promise<Content> {
     const metadata = parseFilename(filename);
     return metadata ? [{ filename, ...metadata }] : [];
   });
+  if (index.epitaph === null && entries.length === 0) throw new EmptyContentError();
   const [objects, epitaph] = await Promise.all([
     Promise.all(entries.map(async ({ filename, ...metadata }) => ({
       ...metadata,

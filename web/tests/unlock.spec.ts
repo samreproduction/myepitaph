@@ -65,14 +65,41 @@ for (const mode of ['expired', 'incorrect', 'malformed']) {
   });
 }
 
-test('空內容解鎖無物件與墓誌銘', async ({ page }) => {
-  await page.route('**/content/index.json', (route) => route.fulfill({ json: { epitaph: null, objects: [] } }));
-  await page.goto('/');
-  await unlock(page);
-  await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
-  await expect(page.getByTestId('memory-object')).toHaveCount(0);
-  await expect(page.locator('.epitaph')).toHaveCount(0);
-});
+for (const objects of [[], ['bad.json']]) {
+  test(`空內容送出任意密碼仍在密碼閘且不儲存（${objects.length ? '不合格物件' : '空索引'}）`, async ({ page }) => {
+    await page.route('**/content/index.json', (route) => route.fulfill({ json: { epitaph: null, objects } }));
+    await page.goto('/');
+    await page.getByLabel('密碼', { exact: true }).fill('arbitrary');
+    await page.getByLabel('記住此裝置 30 天').check();
+    await page.getByRole('button', { name: '進入', exact: true }).click();
+    await expect(page.getByRole('alert')).toHaveText('目前還沒有內容');
+    await expect(page.locator('.gate form')).toBeVisible();
+    await expect(page.getByRole('button', { name: '上鎖', exact: true })).toHaveCount(0);
+    await expect(page.getByTestId('memory-object')).toHaveCount(0);
+    await expect(page.locator('.epitaph')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('blacktomb.unlock'))).toBeNull();
+    const formBottom = await page.locator('.gate form').evaluate((element) => element.getBoundingClientRect().bottom);
+    const horizonTop = await page.locator('.horizon').evaluate((element) => element.getBoundingClientRect().top);
+    expect(formBottom).toBeLessThanOrEqual(horizonTop - 24);
+  });
+}
+
+for (const kind of ['epitaph', 'object']) {
+  test(`只有一個${kind}仍以解密驗證密碼`, async ({ page }) => {
+    await page.route('**/content/index.json', (route) => route.fulfill({ json: {
+      epitaph: kind === 'epitaph' ? 'epitaph.md.enc.json' : null,
+      objects: kind === 'object' ? [`${fixtures[0].date}-${fixtures[0].slug}.md.enc.json`] : [],
+    } }));
+    await page.goto('/');
+    await page.getByLabel('密碼', { exact: true }).fill('incorrect');
+    await page.getByRole('button', { name: '進入', exact: true }).click();
+    await expect(page.getByRole('alert')).toHaveText('密碼不正確');
+    await unlock(page);
+    await expect(page.getByText('生長完成', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('memory-object')).toHaveCount(kind === 'object' ? 1 : 0);
+    await expect(page.locator('.epitaph')).toHaveCount(kind === 'epitaph' ? 1 : 0);
+  });
+}
 
 test('localStorage 不可用仍可解鎖與上鎖', async ({ page }) => {
   await page.addInitScript(() => {

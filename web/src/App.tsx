@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { IncorrectPasswordError, loadContent, type Content, type Memory } from './content';
+import { EmptyContentError, IncorrectPasswordError, loadContent, type Content, type Memory } from './content';
 import { MemoryObject } from './Object';
 
 const storageKey = 'blacktomb.unlock';
@@ -39,7 +39,8 @@ export function App() {
     } catch (cause) {
       if (current !== attempt.current) return;
       forgetPassword();
-      setError(cause instanceof IncorrectPasswordError ? '密碼不正確' : '無法載入內容，請重試');
+      setError(cause instanceof EmptyContentError ? '目前還沒有內容'
+        : cause instanceof IncorrectPasswordError ? '密碼不正確' : '無法載入內容，請重試');
       setPassword('');
       passwordInput.current?.focus();
     } finally {
@@ -104,22 +105,21 @@ export function App() {
         setPhase('locked');
       }}>上鎖</button></header>
       {content.epitaph !== null && <section className="epitaph" aria-label="墓誌銘">
-        <span className="eyebrow">此處留下的，只是測試</span>
         <h1>{content.epitaph.split('\n')[0]}</h1>
         <p>{content.epitaph.split('\n').slice(1).join('\n')}</p>
         <span className="epitaph-line" aria-hidden="true" />
       </section>}
-      <section className="memories" aria-label="依日期排列的測試物件" aria-busy={phase === 'growing'}>
+      <section className="memories" aria-label="依日期排列的物件" aria-busy={phase === 'growing'}>
         {content.objects.slice(0, count).map((item) => <MemoryObject key={`${item.date}-${item.slug}`}
-          item={item} selected={selected?.slug === item.slug}
+          item={item} selected={selected?.date === item.date && selected?.slug === item.slug}
           onOpen={() => { previousFocus.current = document.activeElement as HTMLElement; setSelected(item); }} />)}
       </section>
       <footer><span role="status">{phase === 'growing' ? '記憶正在生長' : '生長完成'}</span><span>停留或長按，讓線條呼吸 · 點選閱讀</span></footer>
     </>}
     <dialog ref={dialog} aria-labelledby="memory-title" onCancel={(event) => { event.preventDefault(); close(); }}>
       {selected && <article className="panel">
-        <div className="panel-top"><span>{selected.date}</span><button onClick={close} aria-label="關閉文字面板">關閉 ×</button></div>
-        <h2 id="memory-title">測試物件文字</h2>
+        <div className="panel-top"><button onClick={close} aria-label="關閉文字面板">關閉 ×</button></div>
+        <h2 id="memory-title">{selected.date}</h2>
         <p className="memory-text">{selected.text}</p>
         <button className="history" onClick={() => setHistory(true)}>歷史</button>
         {history && <p role="status">尚未接入</p>}
