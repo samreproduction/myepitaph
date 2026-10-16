@@ -12,7 +12,8 @@ button:focus-visible { outline: 1px solid #deded9; outline-offset: 5px; }
 .gate form { display: grid; gap: 18px; width: min(280px, 100%); }
 .gate input[type="password"] { width: 100%; background: #0b0c0c; border: 1px solid #666; color: inherit; padding: 12px; font: inherit; }
 .gate input:focus { outline: 1px solid #deded9; outline-offset: 5px; }
-.remember input { accent-color: #aaa; }
+.remember input { appearance: none; width: 18px; height: 18px; margin: 0; flex-shrink: 0; background: #0b0c0c; border: 1px solid #666; display: grid; place-content: center; }
+.remember input:checked::after { content: '✓'; color: #aaa; font-size: 15px; }
 .remember { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .gate button:disabled { opacity: .5; cursor: wait; }
 .gate [role="alert"] { margin: 0; font-size: 13px; }
@@ -54,3 +55,23 @@ dialog::backdrop { background: #000b; backdrop-filter: blur(5px); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media (prefers-reduced-motion: reduce) { .draw-line, .draw-dot { animation: none !important; stroke-dashoffset: 0; opacity: 1; } }
+.masthead-actions { display: flex; gap: 12px; }
+.editor { position: fixed; inset: 0; z-index: 10; overflow-y: auto; background: #101212; padding: 24px max(20px, calc((100vw - 760px) / 2)); overflow-wrap: anywhere; }
+.editor header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.editor h1 { margin: 0; font-size: 24px; }
+.editor h2 { font-size: 18px; font-weight: 400; }
+.editor section { border-top: 1px solid #454848; margin-top: 24px; padding-top: 20px; min-width: 0; }
+.editor label { display: block; line-height: 1.8; }
+.editor input, .editor textarea { display: block; width: 100%; min-width: 0; max-width: 100%; background: #080909; color: inherit; border: 1px solid #666; padding: 12px; margin: 8px 0 16px; font: inherit; }
+.editor textarea { min-height: 150px; resize: vertical; }
+.editor button { min-height: 44px; padding: 10px 16px; background: #181b1b; border: 1px solid #666; margin: 4px 8px 4px 0; }
+.editor button:disabled { opacity: .5; cursor: default; }
+.editor summary { cursor: pointer; padding: 14px 0; min-height: 44px; }
+.editor details { border-bottom: 1px solid #363939; }
+.editor :is(input, textarea, summary):focus-visible { outline: 1px solid #deded9; outline-offset: 3px; }
+@media (max-height: 700px) {
+  .gate { height: auto; padding-top: calc(43svh + 24px - 32px); padding-bottom: 24px; }
+}
+@media (max-height: 700px) and (max-width: 600px) {
+  .gate { padding-top: calc(43svh + 24px - 24px); }
+}

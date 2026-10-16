@@ -2,7 +2,7 @@
 
 > 派單：Claude Code (Opus) | 日期：2026-10-16 | 工人：opencode:openai/gpt-6.1-sol
 > workdir: web
-> claimed-by: （派單時由主 AI 填寫）
+> claimed-by: opencode opencode v2.0.29 / openai/gpt-6.1-sol @ 2026-10-16 18:38:09
 
 ## 目標
 Sam 在手機或電腦瀏覽器裡解鎖後，可以新增、修改、刪除物件和修改墓誌銘；網頁在本機加密後，用 GitHub API 把密文提交到 repo，Actions 自動發佈。明文永遠不離開瀏覽器。

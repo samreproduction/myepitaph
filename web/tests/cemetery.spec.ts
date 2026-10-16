@@ -17,7 +17,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     expect(formBottom).toBeLessThanOrEqual(gateHorizonTop - 24);
     await page.getByLabel('密碼', { exact: true }).focus();
     await expect(page.getByLabel('密碼', { exact: true })).toHaveCSS('outline', 'rgb(222, 222, 217) solid 1px');
-    await expect(page.getByLabel('記住此裝置 30 天')).toHaveCSS('accent-color', 'rgb(170, 170, 170)');
+    const checkbox = page.getByLabel('記住此裝置 30 天');
+    await expect(checkbox).toHaveCSS('appearance', 'none');
+    await expect(checkbox).toHaveCSS('background-color', 'rgb(11, 12, 12)');
+    await expect(checkbox).toHaveCSS('border-color', 'rgb(102, 102, 102)');
     const noOverflow = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await noOverflow();
     const objects = page.getByTestId('memory-object');

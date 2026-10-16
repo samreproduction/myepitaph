@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { EmptyContentError, IncorrectPasswordError, loadContent, type Content, type Memory } from './content';
 import { MemoryObject } from './Object';
+import { Editor } from './Editor';
 
 const storageKey = 'blacktomb.unlock';
 function forgetPassword() {
@@ -13,6 +14,8 @@ export function App() {
   const [selected, setSelected] = useState<Memory | null>(null);
   const [content, setContent] = useState<Content>({ objects: [], epitaph: null });
   const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [editing, setEditing] = useState(false);
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -33,6 +36,7 @@ export function App() {
         try { localStorage.setItem(storageKey, JSON.stringify({ password: value, expiresAt })); } catch { /* Optional storage. */ }
       } else forgetPassword();
       setContent(decrypted);
+      setCurrentPassword(value);
       setCount(0);
       setPassword('');
       setPhase('growing');
@@ -92,18 +96,21 @@ export function App() {
       <button type="submit" disabled={busy}>{busy ? '解開中…' : '進入'}</button>
       {error && <p id="unlock-error" role="alert">{error}</p>}
     </form></div> : <>
-      <header className="masthead"><span>無名之地</span><button className="lock" onClick={() => {
+      <header className="masthead"><span>無名之地</span><div className="masthead-actions"><button className="lock" onClick={() => setEditing(true)}>編輯</button><button className="lock" onClick={() => {
         attempt.current++;
         forgetPassword();
         dialog.current?.close();
         setSelected(null);
         setHistory(false);
         setContent({ objects: [], epitaph: null });
+        setCurrentPassword('');
+        setPassword('');
+        setEditing(false);
         setCount(0);
         setRemember(false);
         setError('');
         setPhase('locked');
-      }}>上鎖</button></header>
+      }}>上鎖</button></div></header>
       {content.epitaph !== null && <section className="epitaph" aria-label="墓誌銘">
         <h1>{content.epitaph.split('\n')[0]}</h1>
         <p>{content.epitaph.split('\n').slice(1).join('\n')}</p>
@@ -125,5 +132,8 @@ export function App() {
         {history && <p role="status">尚未接入</p>}
       </article>}
     </dialog>
+    {editing && <Editor content={content} password={currentPassword} onChange={setContent} onDone={() => {
+      setEditing(false); setCount(0); setPhase('growing');
+    }} />}
   </main>;
 }
