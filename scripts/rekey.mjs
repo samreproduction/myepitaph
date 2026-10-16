@@ -82,7 +82,7 @@ async function main() {
       console.log(file);
     }
   } catch {
-    throw new Error('重新加密或替換檔案失敗；請檢查檔案狀態後重試');
+    throw new Error('重新加密或替換檔案失敗；部分檔案可能已換成新密碼。請先用 git checkout -- objects epitaph.md.enc.json 還原，再重試');
   } finally {
     for (const path of temporary) {
       try { await unlink(path); } catch { console.error('無法清除暫存檔'); }
