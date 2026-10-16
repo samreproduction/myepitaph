@@ -1,0 +1,5 @@
+node_modules/
+# Plaintext must never be committed. Keep the local copy outside the repo.
+plain/
+*.md.plain
+.env
