@@ -45,6 +45,22 @@ describe('encrypted content', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ epitaph: null, objects: [] }) })));
     await expect(loadContent('unused')).rejects.toBeInstanceOf(EmptyContentError);
   });
+  it.each([true, false])('逐檔回報真實解密進度（墓誌銘：%s）', async (withEpitaph) => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const filename = decodeURIComponent(url.replace('./content/', ''));
+      if (filename === 'index.json') return { ok: true, json: async () => ({
+        epitaph: withEpitaph ? 'epitaph.md.enc.json' : null,
+        objects: fixtures.map(({ date, slug }) => `${date}-${slug}.md.enc.json`),
+      }) };
+      const relative = filename === 'epitaph.md.enc.json' ? filename : `objects/${filename}`;
+      return { ok: true, json: async () => JSON.parse(await readFile(new URL(`./content/${relative}`, import.meta.url), 'utf8')) };
+    }));
+    const progress = vi.fn();
+    await loadContent('test-password', progress);
+    const total = 1 + fixtures.length + Number(withEpitaph);
+    expect(progress.mock.calls).toEqual(Array.from({ length: total }, (_, i) => [i + 1, total]));
+    expect(progress).toHaveBeenLastCalledWith(total, total);
+  });
   it('載入歷史索引但不讀歷史密文，刪除檔名解析並略過非法日期', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const history = { 'epitaph.md.enc.json': [{ file: 'history/1.enc.json', date: '2026-10-01T12:00:00Z' }] };

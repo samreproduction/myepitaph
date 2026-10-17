@@ -3,6 +3,7 @@ import { EmptyContentError, IncorrectPasswordError, loadContent, type Content, t
 import { MemoryGap, MemoryObject } from './Object';
 import { History } from './History';
 import { Editor } from './Editor';
+import { TombLoader } from './TombLoader';
 
 const storageKey = 'blacktomb.unlock';
 function forgetPassword() {
@@ -20,6 +21,8 @@ export function App() {
   const [editing, setEditing] = useState(false);
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const readyAttempt = useRef<number | null>(null);
   const [error, setError] = useState('');
   const passwordInput = useRef<HTMLInputElement>(null);
   const attempt = useRef(0);
@@ -32,10 +35,14 @@ export function App() {
 
   const unlock = async (value: string, save: boolean, expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000) => {
     const current = ++attempt.current;
+    readyAttempt.current = null;
+    setProgress({ done: 0, total: 0 });
     setBusy(true);
     setError('');
     try {
-      const decrypted = await loadContent(value);
+      const decrypted = await loadContent(value, (done, total) => {
+        if (current === attempt.current) setProgress({ done, total });
+      });
       if (current !== attempt.current) return;
       if (save) {
         try { localStorage.setItem(storageKey, JSON.stringify({ password: value, expiresAt })); } catch { /* Optional storage. */ }
@@ -44,18 +51,19 @@ export function App() {
       setCurrentPassword(value);
       setCount(0);
       setPassword('');
-      setPhase('growing');
+      readyAttempt.current = current;
     } catch (cause) {
       if (current !== attempt.current) return;
       forgetPassword();
       setError(cause instanceof EmptyContentError ? '目前還沒有內容'
         : cause instanceof IncorrectPasswordError ? '密碼不正確' : '無法載入內容，請重試');
       setPassword('');
-      passwordInput.current?.focus();
-    } finally {
-      if (current === attempt.current) setBusy(false);
+      setBusy(false);
     }
   };
+  useEffect(() => {
+    if (!busy && error) passwordInput.current?.focus();
+  }, [busy, error]);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -90,7 +98,12 @@ export function App() {
   return <main className={`cemetery ${phase}`}>
     <div className="ground" aria-hidden="true" />
     <div className="horizon" aria-hidden="true" />
-    {phase === 'locked' ? <div className="gate"><form onSubmit={(event) => {
+    {phase === 'locked' ? busy ? <TombLoader {...progress} onFinished={() => {
+      if (readyAttempt.current !== attempt.current) return;
+      readyAttempt.current = null;
+      setBusy(false);
+      setPhase('growing');
+    }} /> : <div className="gate"><form onSubmit={(event) => {
       event.preventDefault();
       if (!busy) void unlock(password, remember);
     }}>
@@ -104,6 +117,8 @@ export function App() {
     </form></div> : <>
       <header className="masthead"><span>無名之地</span><div className="masthead-actions"><button className="lock" onClick={() => setEditing(true)}>編輯</button><button className="lock" onClick={() => {
         attempt.current++;
+        readyAttempt.current = null;
+        setBusy(false);
         forgetPassword();
         dialog.current?.close();
         setSelected(null);

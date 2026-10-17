@@ -17,6 +17,12 @@ button:focus-visible { outline: 1px solid #deded9; outline-offset: 5px; }
 .remember { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .gate button:disabled { opacity: .5; cursor: wait; }
 .gate [role="alert"] { margin: 0; font-size: 13px; }
+.tomb-loader { position: absolute; top: 43svh; left: 50%; width: 120px; aspect-ratio: 3 / 4; transform: translate(-50%, -100%); pointer-events: none; }
+.tomb-loader-art { position: absolute; bottom: 0; width: 100%; aspect-ratio: 3 / 4; }
+.tomb-loader p { position: absolute; top: calc(100% + 18px); left: 50%; transform: translateX(-50%); margin: 0; white-space: nowrap; font-size: 11px; letter-spacing: .16em; color: #92958e; }
+.tomb-loader-fading { opacity: 0; transition: opacity 200ms linear; }
+@media (max-width: 600px) { .tomb-loader { width: 96px; } }
+@media (prefers-reduced-motion: reduce) { .tomb-loader-fading { opacity: 1; transition: none; } }
 .lock { background: transparent; border: 1px solid #666; padding: 4px 9px; font-size: 11px; }
 .masthead { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: .16em; color: #828582; }
 .epitaph { text-align: center; padding: 90px 0 48px; }
