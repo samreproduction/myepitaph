@@ -11,7 +11,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
   test(`${viewport.width}×${viewport.height} 墓園完整互動`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    await expect(page).toHaveTitle('黑墓');
+    await expect(page).toHaveTitle('無名之地');
     const formBottom = await page.locator('.gate form').evaluate((element) => element.getBoundingClientRect().bottom);
     const gateHorizonTop = await page.locator('.horizon').evaluate((element) => element.getBoundingClientRect().top);
     expect(formBottom).toBeLessThanOrEqual(gateHorizonTop - 24);

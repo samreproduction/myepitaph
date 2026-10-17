@@ -116,7 +116,7 @@ export function App() {
       <button type="submit" disabled={busy}>{busy ? '解開中…' : '進入'}</button>
       {error && <p id="unlock-error" role="alert">{error}</p>}
     </form></div> : <>
-      <header className="masthead"><span>無名之地</span><div className="masthead-actions"><button className="lock" onClick={() => setEditing(true)}>編輯</button><button className="lock" onClick={() => {
+      <header className="masthead"><span className="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 20.5V10a4.5 4.5 0 0 1 9 0v10.5M5 20.5h14" /><path className="mark-carve" d="M10.5 10.5h3" /></svg>無名之地</span><div className="masthead-actions"><button className="lock" onClick={() => setEditing(true)}>編輯</button><button className="lock" onClick={() => {
         attempt.current++;
         readyAttempt.current = null;
         setBusy(false);

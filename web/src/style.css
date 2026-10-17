@@ -62,6 +62,8 @@ dialog::backdrop { background: #000b; backdrop-filter: blur(5px); }
 @media (max-width: 600px) {
   .cemetery { padding: 24px 24px 28px; }
   .masthead { font-size: 9px; letter-spacing: .05em; }
+  .mark svg { width: 18px; height: 18px; }
+  .mark { gap: 7px; }
   .epitaph { padding: 68px 0 32px; }
   .memories { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
   .object-art { max-width: 98px; }
@@ -71,6 +73,9 @@ dialog::backdrop { background: #000b; backdrop-filter: blur(5px); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media (prefers-reduced-motion: reduce) { .draw-line, .draw-dot { animation: none !important; stroke-dashoffset: 0; opacity: 1; } }
 .masthead-actions { display: flex; gap: 12px; }
+.mark { display: inline-flex; align-items: center; gap: 10px; }
+.mark svg { width: 22px; height: 22px; flex: none; fill: none; stroke: #b5b9b2; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.mark .mark-carve { stroke: #8c9088; }
 .editor { position: fixed; inset: 0; z-index: 10; overflow-y: auto; background: #101212; padding: 24px max(20px, calc((100vw - 760px) / 2)); overflow-wrap: anywhere; }
 .editor header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .editor h1 { margin: 0; font-size: 24px; }
