@@ -26,7 +26,7 @@ button:focus-visible { outline: 1px solid #deded9; outline-offset: 5px; }
 .lock { background: transparent; border: 1px solid #666; padding: 4px 9px; font-size: 11px; }
 .masthead { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: .16em; color: #828582; }
 .epitaph { text-align: center; padding: 90px 0 48px; }
-h1 { font-size: clamp(24px, 3vw, 38px); font-weight: 400; letter-spacing: .23em; margin: 28px 0 20px; }
+h1 { font-variant-numeric: tabular-nums; font-size: clamp(24px, 3vw, 38px); font-weight: 400; letter-spacing: .23em; margin: 28px 0 20px; }
 .epitaph p { white-space: pre-line; font-size: 13px; line-height: 2.3; letter-spacing: .15em; color: #aaa; }
 .epitaph-line { display: block; height: 46px; width: 1px; background: #60635f; margin: 26px auto 0; }
 .memories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 5vw; max-width: 1000px; margin: 0 auto; min-height: 310px; }
@@ -94,3 +94,4 @@ dialog::backdrop { background: #000b; backdrop-filter: blur(5px); }
 .history-versions form label { flex-basis: 100%; }
 .history-versions form input { flex: 1; min-width: 0; background: #0b0c0c; border: 1px solid #666; color: inherit; padding: 10px; font: inherit; }
 .history-versions form input:focus-visible { outline: 1px solid #deded9; outline-offset: 3px; }
+.lifetime { white-space: nowrap; }
