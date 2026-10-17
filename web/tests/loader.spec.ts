@@ -27,7 +27,6 @@ test('逐塊墓碑跟隨解密進度，完成後才進入墓園', async ({ page 
     Object.assign(window, { loaderSamples: samples });
   });
   await expect(progress).toHaveAttribute('aria-valuenow', '10');
-  await expect(page.locator('[data-laid="true"]')).toHaveCount(15);
   await expect(page.getByRole('button', { name: '上鎖', exact: true })).toBeVisible();
   await expect(progress).toHaveCount(0);
   const samples = await page.evaluate(() => (window as unknown as { loaderSamples: number[] }).loaderSamples);

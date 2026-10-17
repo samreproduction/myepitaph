@@ -3,10 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Easing, interpolate, useCurrentFrame } from 'remotion';
 
 const stoneCount = 15;
-const laidFrame = (count: number) => count === 0 ? 0 : (count - 1) * 4 + 8;
+// Each stone falls for `step` frames and the next starts as it lands, so pausing between stones never cuts a fall short.
+const step = 6;
+const laidFrame = (count: number) => count * step;
 const carvingStart = laidFrame(stoneCount);
 const fadeStart = carvingStart + 8 + 9;
 export const durationInFrames = fadeStart + 6 + 1;
+// Catch up with real decryption progress quickly instead of lagging behind it.
+const catchUpFrames = 6;
+const finishFrames = 24;
 const stones = [
   { x: .5, y: 146.5, width: 58.75, height: 13 },
   { x: 60.75, y: 146.5, width: 58.75, height: 13 },
@@ -28,15 +33,15 @@ export function TombBuild({ target, reducedMotion }: { target: number; reducedMo
     : interpolate(frame, [carvingStart, carvingStart + 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   return <svg viewBox="0 0 120 160" aria-hidden="true">
     {stones.map((stone, i) => {
-      const laid = i < target && (reducedMotion || frame >= i * 4 + 8);
-      const started = i < target && (reducedMotion || frame > i * 4);
-      const progress = reducedMotion ? 1 : interpolate(frame, [i * 4, i * 4 + 8], [0, 1], {
+      const laid = i < target && (reducedMotion || frame >= laidFrame(i + 1));
+      const started = i < target && (reducedMotion || frame > laidFrame(i));
+      const progress = reducedMotion ? 1 : interpolate(frame, [laidFrame(i), laidFrame(i + 1)], [0, 1], {
         extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic),
       });
       const props = {
         'data-stone': i, 'data-laid': laid ? 'true' : 'false',
         stroke: '#b5b9b2', strokeWidth: 1, strokeDasharray: started ? undefined : '2 3',
-        fill: started ? '#2a2c2b' : 'none', opacity: started ? progress : .14,
+        fill: started ? '#2a2c2b' : 'none', opacity: started ? progress : .22,
         transform: started ? `translate(0 ${-10 * (1 - progress)})` : undefined,
       };
       return stone ? <rect key={i} {...stone} {...props} rx={1} />
@@ -51,6 +56,7 @@ export function TombLoader({ done, total, onFinished }: { done: number; total: n
   const player = useRef<PlayerRef>(null);
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [fading, setFading] = useState(false);
+  const [rate, setRate] = useState(1);
   const target = total > 0 ? Math.min(stoneCount, Math.floor(done / total * stoneCount)) : 0;
   const complete = total > 0 && done === total;
   useEffect(() => {
@@ -74,6 +80,8 @@ export function TombLoader({ done, total, onFinished }: { done: number; total: n
       if (!complete && frame >= laidFrame(target)) instance.pause();
       if (complete && frame >= fadeStart) setFading(true);
     };
+    const remaining = (complete ? durationInFrames : laidFrame(target)) - instance.getCurrentFrame();
+    setRate(Math.min(10, Math.max(1, remaining / (complete ? finishFrames : catchUpFrames))));
     instance.addEventListener('frameupdate', update);
     instance.addEventListener('ended', onFinished);
     if (complete || instance.getCurrentFrame() < laidFrame(target)) instance.play();
@@ -87,7 +95,7 @@ export function TombLoader({ done, total, onFinished }: { done: number; total: n
     aria-label="解開內容" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
     <div className="tomb-loader-art"><Player ref={player} component={TombBuild} inputProps={{ target, reducedMotion }}
       durationInFrames={durationInFrames} fps={30} compositionWidth={120} compositionHeight={160}
-      controls={false} clickToPlay={false} spaceKeyToPlayOrPause={false}
+      playbackRate={rate} controls={false} clickToPlay={false} spaceKeyToPlayOrPause={false}
       style={{ width: '100%', height: '100%', pointerEvents: 'none' }} /></div>
     <p>解開 {done} / {total}</p>
   </div>;
