@@ -1,7 +1,7 @@
 # T7：墓碑堆砌載入動畫與進度條
 
 > 派單：Claude Code (Opus) | 日期：2026-10-17 | 工人：opencode:openai/gpt-6.1-sol
-> claimed-by: （派單時由主 AI 填寫）
+> claimed-by: opencode opencode v2.0.29 / openai/gpt-6.1-sol @ 2026-10-17 11:43:19
 
 ## 目標
 解開內容時（PBKDF2 每檔 60 萬次，九個檔案要幾秒），現在只有按鈕上的「解開中…」。改成一個 Remotion 動畫：一座墓碑在地平線上從零逐塊堆砌，已放下的石塊數量就是進度條。

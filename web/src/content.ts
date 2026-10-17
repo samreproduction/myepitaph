@@ -58,7 +58,7 @@ export async function loadVersion(version: HistoryVersion, password: string) {
   return decryptEnvelope(await readJson(version.file.split('/').map(encodeURIComponent).join('/')), password);
 }
 
-export async function loadContent(password: string): Promise<Content> {
+export async function loadContent(password: string, onProgress?: (done: number, total: number) => void): Promise<Content> {
   const index: { epitaph: string | null; objects: string[]; history?: Content['history'];
     deleted?: { name: string; deletedAt: string }[] } = await readJson('index.json');
   const deleted = (index.deleted ?? []).flatMap(({ name, deletedAt }) => {
@@ -70,13 +70,20 @@ export async function loadContent(password: string): Promise<Content> {
     return metadata ? [{ filename, ...metadata }] : [];
   });
   if (index.epitaph === null && entries.length === 0) throw new EmptyContentError();
+  const total = 1 + entries.length + (index.epitaph === null ? 0 : 1);
+  let done = 1;
+  onProgress?.(done, total);
+  const decrypt = async (filename: string) => {
+    const text = await decryptEnvelope(await readJson(encodeURIComponent(filename)), password);
+    onProgress?.(++done, total);
+    return text;
+  };
   const [objects, epitaph] = await Promise.all([
     Promise.all(entries.map(async ({ filename, ...metadata }) => ({
       ...metadata,
-      text: await decryptEnvelope(await readJson(encodeURIComponent(filename)), password),
+      text: await decrypt(filename),
     }))),
-    index.epitaph === null ? null : readJson(encodeURIComponent(index.epitaph))
-      .then((envelope) => decryptEnvelope(envelope, password)),
+    index.epitaph === null ? null : decrypt(index.epitaph),
   ]);
   return { objects: objects.sort((a, b) => a.date.localeCompare(b.date) || a.slug.localeCompare(b.slug)),
     epitaph, history: index.history ?? {}, deleted };
