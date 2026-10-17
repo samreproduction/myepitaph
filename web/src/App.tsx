@@ -4,6 +4,7 @@ import { MemoryGap, MemoryObject } from './Object';
 import { History } from './History';
 import { Editor } from './Editor';
 import { TombLoader } from './TombLoader';
+import { Living } from './Lifetime';
 
 const storageKey = 'blacktomb.unlock';
 function forgetPassword() {
@@ -134,8 +135,8 @@ export function App() {
         setPhase('locked');
       }}>上鎖</button></div></header>
       {content.epitaph !== null && <section className="epitaph" aria-label="墓誌銘">
-        <h1>{content.epitaph.split('\n')[0]}</h1>
-        <p>{content.epitaph.split('\n').slice(1).join('\n')}</p>
+        <h1><Living text={content.epitaph.split('\n')[0]} /></h1>
+        <p><Living text={content.epitaph.split('\n').slice(1).join('\n')} /></p>
         <span className="epitaph-line" aria-hidden="true" />
         <button className="history" onClick={() => {
           previousFocus.current = document.activeElement as HTMLElement;
@@ -155,7 +156,7 @@ export function App() {
       {(selected || epitaphSelected) && <article className="panel">
         <div className="panel-top"><button onClick={close} aria-label="關閉文字面板">關閉 ×</button></div>
         <h2 id="memory-title">{epitaphSelected ? '墓誌銘' : selected?.date}</h2>
-        <p className="memory-text">{epitaphSelected ? content.epitaph : selected?.text}</p>
+        <p className="memory-text">{epitaphSelected ? <Living text={content.epitaph ?? ''} /> : selected?.text}</p>
         <button className="history" aria-expanded={history} onClick={() => setHistory(!history)}>歷史</button>
         {history && <History password={currentPassword} versions={content.history[epitaphSelected
           ? 'epitaph.md.enc.json' : `${selected?.date}-${selected?.slug}.md.enc.json`] ?? []} />}

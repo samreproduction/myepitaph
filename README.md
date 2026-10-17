@@ -36,18 +36,20 @@
 5. 看到「已提交，約一分鐘後上線」即完成。按「完成」回到墓園。
 6. 若顯示「此內容已在別處更新」，代表另一個裝置先改了同一件，按「完成」後重新整理頁面再改。
 
-### 封存第一筆內容（電腦，Windows PowerShell）
+### 封存第一筆內容（電腦，Windows PowerShell 7 `pwsh`）
 
-明文只放在 repo 之外，例如 `~\blacktomb-plain\`。物件與墓誌銘分開兩個資料夾，因為兩者封存到不同位置：
+明文只放在 repo 之外，例如 `$HOME\blacktomb-plain\`（PowerShell 傳給 node 的路徑不會展開 `~`，請用 `$HOME`）。物件與墓誌銘分開兩個資料夾，因為兩者封存到不同位置：
 
-    ~\blacktomb-plain\objects\2026-10-17-first.md   物件，檔名格式 YYYY-MM-DD-短名.md
-    ~\blacktomb-plain\epitaph\epitaph.md            墓誌銘，第一行是標題
+    $HOME\blacktomb-plain\objects\2026-10-17-first.md   物件，檔名格式 YYYY-MM-DD-短名.md
+    $HOME\blacktomb-plain\epitaph\epitaph.md            墓誌銘，第一行是標題
+
+墓誌銘裡寫 `{{存在:YYYY-MM-DD}}`，網站會顯示從該日（香港時間零時）起即時跳動的「N 小時 N 秒」。
 
 在 repo 根目錄執行：
 
     $env:BLACKTOMB_PASSWORD = Read-Host '密碼' -MaskInput
-    node scripts/seal.mjs seal ~\blacktomb-plain\objects objects
-    node scripts/seal.mjs seal ~\blacktomb-plain\epitaph .
+    node scripts/seal.mjs seal "$HOME\blacktomb-plain\objects" objects
+    node scripts/seal.mjs seal "$HOME\blacktomb-plain\epitaph" .
     Remove-Item Env:BLACKTOMB_PASSWORD
     git add objects epitaph.md.enc.json
     git commit -m "封存第一筆內容"
@@ -59,7 +61,7 @@ push 前確認 `git status` 只列出 `.enc.json` 檔。網站更新後就能用
 
 把密文解回明文（例如復原本地副本）：
 
-    node scripts/seal.mjs open objects ~\blacktomb-plain-restore
+    node scripts/seal.mjs open objects "$HOME\blacktomb-plain-restore"
 
 ## 結構
 
